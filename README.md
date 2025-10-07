@@ -1,2 +1,21 @@
-# GMSS
-Gym Membership Subscription System
+# GyMMS
+Gym Membership Management System
+
+### Problem Identification:
+    1. Manual tracking of membership subscriptions, time consuming and very prone to human errors
+    2. Date when the subscription of a certain member will end is based on when the client will check his notebook.
+    3. Payments are in-person, no automated options or online payment option.
+
+### General Objective:
+	To create, ship and deploy a web-based system that manages and keep track of all membership subscriptions. 
+    With additional features such as analytics and data visualization for sales and revenue, as well as online 
+    payment solutions such as (gcash, gotyme, instapay API). The project will provide ease to the client as 
+    it reduces manual responsibilities and the project will provide automated payment reminders to a 
+    personalized dashboard.	
+
+### Specific Objectives:
+    So1: Dashboard for viewing all membership subscription status, date, name, duration, etc.
+    So2: Dashboard for analytics and data visualization for sales and revenue.
+    So3: Online payments solutions with multiple payment APIs
+
+

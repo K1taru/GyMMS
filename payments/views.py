@@ -1,3 +1,4 @@
 from django.shortcuts import render
 
-# Create your views here.
+def payments_base(request):
+    return render(request, "payments/base.html")

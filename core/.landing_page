@@ -1,0 +1,12 @@
+
+
+Write me a django-html file with static file enabled.
+
+On upper, there is a bar that has a logo on the left, it has dashboard, memberships, and metrics.
+On the right side of the bar, there is a profile icon that when clicked, it shows a dropdown with settings and logout.
+If user is logged out, it will show the modal for login and signup. 
+if logged in as admin, it will redirect to dashboard.
+
+you can use css and js files from static/core/ folder. use style.css and script.js file names.
+
+The name of the project is GyMMS or Gym Membership Management System.

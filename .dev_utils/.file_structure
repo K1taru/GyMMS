@@ -1,4 +1,4 @@
-GMSS/
+GyMMS/
 ├─ .venv/                      # Python virtual environment
 |
 ├─ config/                     # Django project configuration

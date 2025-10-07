@@ -4,3 +4,12 @@ django-crispy-forms
 crispy-bootstrap5
 django-filter
 django-extensions
+
+Django>=5.0
+psycopg2-binary>=2.9
+python-dotenv>=1.0
+
+psycopg2-binary
+
+django-environ>=0.11.2
+pillow>=9.0

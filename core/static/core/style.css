@@ -1,0 +1,287 @@
+/* -------------------
+   Global Reset & Body
+--------------------*/
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+body {
+    background: #f4f6f9;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* -------------------
+   Navbar
+--------------------*/
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1e272e; /* Dark navy */
+    color: #fff;
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.logo a {
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: #00b894; /* Teal */
+    text-decoration: none;
+    letter-spacing: 1px;
+}
+
+.nav-links {
+    display: flex;
+    gap: 1.8rem;
+}
+
+.nav-links a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    position: relative;
+    padding-bottom: 3px;
+    transition: color 0.2s ease-in-out;
+}
+
+.nav-links a:hover {
+    color: #00b894;
+}
+
+.nav-links a::after {
+    content: "";
+    position: absolute;
+    width: 0%;
+    height: 2px;
+    left: 0;
+    bottom: 0;
+    background: #00b894;
+    transition: 0.3s ease;
+}
+
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+/* -------------------
+   Profile Menu
+--------------------*/
+.profile-menu {
+    position: relative;
+}
+
+.profile-icon {
+    cursor: pointer;
+    font-size: 1.6rem;
+    padding: 0.5rem;
+    border-radius: 50%;
+    background: #57606f;
+    color: #fff;
+    transition: background 0.2s;
+}
+
+.profile-icon:hover {
+    background: #00b894;
+}
+
+.dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 2.8rem;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    min-width: 160px;
+    box-shadow: 0 6px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.dropdown a {
+    display: block;
+    padding: 0.8rem 1rem;
+    text-decoration: none;
+    color: #333;
+    font-size: 0.95rem;
+    transition: background 0.2s;
+}
+
+.dropdown a:hover {
+    background: #f4f4f4;
+}
+
+/* -------------------
+   Buttons
+--------------------*/
+button {
+    margin-left: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    background: #00b894;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s ease-in-out, transform 0.1s;
+}
+
+button:hover {
+    background: #019170;
+    transform: scale(1.05);
+}
+
+/* -------------------
+   Landing Content
+--------------------*/
+.landing {
+    text-align: center;
+    margin-top: 6rem;
+    padding: 3rem 2rem;
+    background: #fff;
+    border-radius: 12px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.1);
+}
+
+.landing h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #1e272e;
+}
+
+.landing p {
+    font-size: 1.2rem;
+    color: #555;
+}
+
+/* -------------------
+   Modals
+--------------------*/
+.modal {
+    display: none; 
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 420px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+}
+
+.modal-content h2 {
+    margin-bottom: 1.2rem;
+    text-align: center;
+    color: #1e272e;
+}
+
+.modal-content form label {
+    display: block;
+    margin-top: 1rem;
+    font-weight: bold;
+    color: #444;
+}
+
+.modal-content form input {
+    width: 100%;
+    padding: 0.6rem;
+    margin-top: 0.4rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    outline: none;
+    transition: border 0.2s;
+}
+
+.modal-content form input:focus {
+    border: 1px solid #00b894;
+}
+
+.modal-content form button {
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 0.8rem;
+    border-radius: 6px;
+}
+
+/* -------------------
+   Close Button
+--------------------*/
+.close {
+    position: absolute;
+    top: 12px;
+    right: 18px;
+    font-size: 1.6rem;
+    color: #888;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close:hover {
+    color: #333;
+}
+
+/* -------------------
+   Modal Animations
+--------------------*/
+.modal {
+    display: none; 
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: center;
+
+    opacity: 0;                /* hidden by default */
+    pointer-events: none;      /* disable interaction */
+    transition: opacity 0.3s ease;
+}
+
+.modal.show {
+    display: flex;             /* flex container when active */
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 420px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+
+    transform: translateY(-30px);   /* start slightly above */
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.modal.show .modal-content {
+    transform: translateY(0);  /* slide down */
+    opacity: 1;
+}

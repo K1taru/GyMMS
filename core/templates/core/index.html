@@ -1,0 +1,81 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GyMMS | Gym Membership Management System</title>
+    <link rel="stylesheet" href="{% static 'core/style.css' %}">
+    <script defer src="{% static 'core/script.js' %}"></script>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <header class="navbar">
+        <div class="logo">
+            <a href="{% url 'core:index' %}">GyMMS</a>
+        </div>
+
+        <nav class="nav-links">
+            <a href="{% url 'dashboard:base' %}">Dashboard</a>
+            <a href="{% url 'memberships:base' %}">Memberships</a>
+            <a href="{% url 'metrics:base' %}">Metrics</a>
+        </nav>
+
+        <div class="profile-menu">
+            {% if user.is_authenticated %}
+                <div class="profile-icon" id="profile-icon">👤</div>
+                <div class="dropdown" id="profile-dropdown">
+                    <a href="#">Settings</a>
+                    <a href="{% url 'users:logout' %}">Logout</a>
+                </div>
+            {% else %}
+                <button id="login-btn">Login</button>
+                <button id="signup-btn">Signup</button>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Landing Content -->
+    <main class="landing">
+        <h1>Welcome to GyMMS</h1>
+        <p>A Django-powered web-app designed to simplify and automate gym membership management by providing efficient subscription tracking, payment monitoring, and member activity metrics. 
+</p>
+    </main>
+
+    <!-- Login Modal -->
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
+            <span class="close" data-close="login-modal">&times;</span>
+            <h2>Login</h2>
+            <form method="post" action="{% url 'users:base' %}">
+                {% csrf_token %}
+                <label>Username</label>
+                <input type="text" name="username" required>
+                <label>Password</label>
+                <input type="password" name="password" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div class="modal" id="signup-modal">
+        <div class="modal-content">
+            <span class="close" data-close="signup-modal">&times;</span>
+            <h2>Signup</h2>
+            <form method="post" action="{% url 'users:base' %}">
+                {% csrf_token %}
+                <label>Username</label>
+                <input type="text" name="username" required>
+                <label>Email</label>
+                <input type="email" name="email" required>
+                <label>Password</label>
+                <input type="password" name="password1" required>
+                <label>Confirm Password</label>
+                <input type="password" name="password2" required>
+                <button type="submit">Signup</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
