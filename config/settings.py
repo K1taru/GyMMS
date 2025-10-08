@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     # GyMMS apps
     "core",
     "dashboard",
+    "membership_plans",
     "memberships",
     "metrics",
     "payments",
