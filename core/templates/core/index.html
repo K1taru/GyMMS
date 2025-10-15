@@ -30,7 +30,8 @@
                 </div>
             {% else %}
                 <button id="login-btn">Login</button>
-                <button id="signup-btn">Signup</button>
+                <!-- 🔹 Changed Signup button to Register, now uses Django route -->
+                <button onclick="location.href='{% url 'core:register' %}'" class="btn-register">Register</button>
             {% endif %}
         </div>
     </header>
@@ -38,8 +39,7 @@
     <!-- Landing Content -->
     <main class="landing">
         <h1>Welcome to GyMMS</h1>
-        <p>A Django-powered web-app designed to simplify and automate gym membership management by providing efficient subscription tracking, payment monitoring, and member activity metrics. 
-</p>
+        <p>A Django-powered web-app designed to simplify and automate gym membership management by providing efficient subscription tracking, payment monitoring, and member activity metrics.</p>
     </main>
 
     <!-- Login Modal -->
@@ -54,26 +54,6 @@
                 <label>Password</label>
                 <input type="password" name="password" required>
                 <button type="submit">Login</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Signup Modal -->
-    <div class="modal" id="signup-modal">
-        <div class="modal-content">
-            <span class="close" data-close="signup-modal">&times;</span>
-            <h2>Signup</h2>
-            <form method="post" action="{% url 'users:base' %}">
-                {% csrf_token %}
-                <label>Username</label>
-                <input type="text" name="username" required>
-                <label>Email</label>
-                <input type="email" name="email" required>
-                <label>Password</label>
-                <input type="password" name="password1" required>
-                <label>Confirm Password</label>
-                <input type="password" name="password2" required>
-                <button type="submit">Signup</button>
             </form>
         </div>
     </div>

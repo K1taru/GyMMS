@@ -3,9 +3,8 @@ from django.shortcuts import render
 from .models import Membership_Plan
 
 
-def membership_plans_base(request):
+def base(request):
     return render(request, "membership_plans/base.html")
-
 
 @user_passes_test(lambda u: u.is_staff)
 def manage_plans(request):

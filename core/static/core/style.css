@@ -33,7 +33,7 @@ body {
 .logo a {
     font-size: 1.6rem;
     font-weight: bold;
-    color: #00b894; /* Teal */
+    color: #00b894; /* Teal accent */
     text-decoration: none;
     letter-spacing: 1px;
 }
@@ -76,6 +76,8 @@ body {
 --------------------*/
 .profile-menu {
     position: relative;
+    display: flex;
+    align-items: center;
 }
 
 .profile-icon {
@@ -121,11 +123,10 @@ body {
 /* -------------------
    Buttons
 --------------------*/
-button {
-    margin-left: 0.5rem;
+button,
+.btn-register {
+    display: inline-block;
     padding: 0.6rem 1.2rem;
-    background: #00b894;
-    color: #fff;
     border: none;
     border-radius: 6px;
     cursor: pointer;
@@ -133,8 +134,27 @@ button {
     transition: background 0.2s ease-in-out, transform 0.1s;
 }
 
+/* Login Button (default) */
+button {
+    background: #00b894;
+    color: #fff;
+}
+
 button:hover {
     background: #019170;
+    transform: scale(1.05);
+}
+
+/* Register Button */
+.btn-register {
+    background-color: #4CAF50; /* Distinct green accent */
+    color: white;
+    text-decoration: none;
+    margin-left: 0.5rem;
+}
+
+.btn-register:hover {
+    background-color: #3e8e41;
     transform: scale(1.05);
 }
 
@@ -168,7 +188,7 @@ button:hover {
    Modals
 --------------------*/
 .modal {
-    display: none; 
+    display: none;
     position: fixed;
     z-index: 2000;
     left: 0;
@@ -178,6 +198,15 @@ button:hover {
     background: rgba(0,0,0,0.6);
     justify-content: center;
     align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.modal.show {
+    display: flex;
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .modal-content {
@@ -188,6 +217,14 @@ button:hover {
     width: 90%;
     position: relative;
     box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+    transform: translateY(-30px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.modal.show .modal-content {
+    transform: translateY(0);
+    opacity: 1;
 }
 
 .modal-content h2 {
@@ -239,49 +276,4 @@ button:hover {
 
 .close:hover {
     color: #333;
-}
-
-/* -------------------
-   Modal Animations
---------------------*/
-.modal {
-    display: none; 
-    position: fixed;
-    z-index: 2000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.6);
-    justify-content: center;
-    align-items: center;
-
-    opacity: 0;                /* hidden by default */
-    pointer-events: none;      /* disable interaction */
-    transition: opacity 0.3s ease;
-}
-
-.modal.show {
-    display: flex;             /* flex container when active */
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.modal-content {
-    background: #fff;
-    padding: 2rem;
-    border-radius: 12px;
-    max-width: 420px;
-    width: 90%;
-    position: relative;
-    box-shadow: 0 6px 14px rgba(0,0,0,0.2);
-
-    transform: translateY(-30px);   /* start slightly above */
-    opacity: 0;
-    transition: all 0.3s ease;
-}
-
-.modal.show .modal-content {
-    transform: translateY(0);  /* slide down */
-    opacity: 1;
 }
