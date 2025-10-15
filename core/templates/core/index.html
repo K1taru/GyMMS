@@ -29,33 +29,20 @@
                     <a href="{% url 'users:logout' %}">Logout</a>
                 </div>
             {% else %}
-                <button id="login-btn">Login</button>
-                <!-- 🔹 Changed Signup button to Register, now uses Django route -->
-                <button onclick="location.href='{% url 'core:register' %}'" class="btn-register">Register</button>
+                <button href="{% url 'core:login' %}" class="btn-login">Login</button>
+                <button href="{% url 'core:register' %}" class="btn-register">Register</button>
             {% endif %}
         </div>
     </header>
 
-    <!-- Landing Content -->
+    <!-- Main Content -->
     <main class="landing">
+        {% block content %}
         <h1>Welcome to GyMMS</h1>
-        <p>A Django-powered web-app designed to simplify and automate gym membership management by providing efficient subscription tracking, payment monitoring, and member activity metrics.</p>
+        <p>
+            A Django-powered web app designed to simplify and automate gym membership management by providing efficient subscription tracking, payment monitoring, and member activity metrics.
+        </p>
+        {% endblock %}
     </main>
-
-    <!-- Login Modal -->
-    <div class="modal" id="login-modal">
-        <div class="modal-content">
-            <span class="close" data-close="login-modal">&times;</span>
-            <h2>Login</h2>
-            <form method="post" action="{% url 'users:base' %}">
-                {% csrf_token %}
-                <label>Username</label>
-                <input type="text" name="username" required>
-                <label>Password</label>
-                <input type="password" name="password" required>
-                <button type="submit">Login</button>
-            </form>
-        </div>
-    </div>
 </body>
 </html>
