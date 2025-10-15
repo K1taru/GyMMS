@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GyMMS | Gym Membership Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.3/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'core/style.css' %}">
     <script defer src="{% static 'core/script.js' %}"></script>
 </head>
@@ -29,8 +30,8 @@
                     <a href="{% url 'users:logout' %}">Logout</a>
                 </div>
             {% else %}
-                <button href="{% url 'core:login' %}" class="btn-login">Login</button>
-                <button href="{% url 'core:register' %}" class="btn-register">Register</button>
+                <button onclick="location.href='{% url 'core:login' %}'" class="btn-login">Login</button>
+                <button onclick="location.href='{% url 'core:register' %}'" class="btn-register">Register</button>
             {% endif %}
         </div>
     </header>
