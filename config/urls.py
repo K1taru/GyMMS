@@ -1,15 +1,18 @@
 from django.contrib import admin
 from django.urls import path, include
+from users import views
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("core.urls")),     # Currently where the root, landing page
     path("dashboard/", include("dashboard.urls")),
     path("memberships/", include("memberships.urls")),
-    path("membership_plans/", include("memberships_plans.urls")),
+    path("membership_plans/", include("membership_plans.urls")),
     path("metrics/", include("metrics.urls")),
     path("payments/", include("payments.urls")),
     path("users/", include("users.urls")),
+    
 ]
 
 

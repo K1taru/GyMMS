@@ -25,7 +25,7 @@ class Payment(models.Model):
         limit_choices_to={'role': 'member'},
         related_name='payments'
     )
-    membership_plan = models.ForeignKey(
+    membership_type = models.ForeignKey(
         'membership_plans.Membership_Plan', 
         on_delete=models.SET_NULL, 
         null=True, 
