@@ -57,4 +57,35 @@ document.addEventListener("DOMContentLoaded", function () {
             event.target.classList.remove("show");
         }
     });
+
+    // === Toggle Login / Register forms on landing page ===
+    (function(){
+        var toggleBtn = document.getElementById('toggle-btn');
+        var loginForm = document.getElementById('login-form');
+        var registerForm = document.getElementById('register-form');
+        var formTitle = document.getElementById('form-title');
+        var formError = document.getElementById('form-error');
+
+        if (!toggleBtn) return;
+
+        toggleBtn.addEventListener('click', function(e){
+            e.preventDefault();
+            var showingRegister = !registerForm.classList.contains('hidden');
+            if (showingRegister) {
+                // switch to login
+                registerForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+                formTitle.textContent = 'Login';
+                toggleBtn.textContent = 'Register';
+            } else {
+                // switch to register
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                formTitle.textContent = 'Register';
+                toggleBtn.textContent = 'Login';
+            }
+            if (formError) { formError.classList.add('hidden'); }
+        });
+    })();
 });
+
