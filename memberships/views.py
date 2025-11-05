@@ -1,4 +1,4 @@
 from django.shortcuts import render
 
-def base(request):
-    return render(request, "dashboard/base.html")
+def memberships(request):
+    return render(request, "memberships/memberships.html")

@@ -1,4 +1,4 @@
 from django.shortcuts import render
 
-def base(request):
-    return render(request, "metrics/base.html")
+def metrics(request):
+    return render(request, "metrics/metrics.html")

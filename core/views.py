@@ -5,7 +5,7 @@ from django.contrib import messages
 
 def index(request):
     if request.user.is_authenticated and request.user.is_staff:
-        return redirect("dashboard:base")
+        return redirect("dashboard:dashboard")
     return render(request, "core/index.html")
 
 def login(request):
@@ -17,7 +17,7 @@ def login(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             auth_login(request, user)
-            return redirect("dashboard:base")  # Redirect after successful login
+            return redirect("dashboard:dashboard")  # Redirect after successful login
         else:
             return render(request, "core/login.html", {"error": "Invalid username or password"})
 

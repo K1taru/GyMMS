@@ -1,0 +1,36 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'core/css/navbar.css' %}">
+<script defer src="{% static 'core/js/navbar.js' %}"></script>
+
+<header class="navbar">
+    <div class="logo">
+        <a href="{% url 'core:index' %}">GyMMS</a>
+    </div>
+
+    <nav class="nav-links">
+        {% url 'dashboard:dashboard' as dashboard_url %}
+        {% url 'memberships:memberships' as memberships_url %}
+        {% url 'metrics:metrics' as metrics_url %}
+        {% url 'payments:payments' as payments_url %}
+
+        <a href="{{ dashboard_url }}" class="{% if request.path == dashboard_url %}active{% endif %}" {% if request.path == dashboard_url %}aria-current="page"{% endif %}>Dashboard</a>
+        <a href="{{ memberships_url }}" class="{% if request.path == memberships_url %}active{% endif %}">Memberships</a>
+        <a href="{{ metrics_url }}" class="{% if request.path == metrics_url %}active{% endif %}">Metrics</a>
+        <a href="{{ payments_url }}" class="{% if request.path == payments_url %}active{% endif %}">Payments</a>
+    </nav>
+
+    <div class="profile-menu">
+        <!-- Show profile icon for all users; dropdown contents differ by auth state -->
+        <div class="profile-icon" id="profile-icon" aria-haspopup="true" aria-expanded="false" title="Account">👤</div>
+        <div class="dropdown" id="profile-dropdown" role="menu" aria-label="Profile menu">
+            {% if user.is_authenticated %}
+                <a href="#" role="menuitem">Profile</a>
+                <a href="#" role="menuitem">Settings</a>
+                <a href="{% url 'users:logout' %}" role="menuitem">Logout</a>
+            {% else %}
+                <a href="{% url 'core:login' %}" role="menuitem">Login</a>
+                <a href="{% url 'core:register' %}" role="menuitem">Register</a>
+            {% endif %}
+        </div>
+    </div>
+</header>
