@@ -5,96 +5,129 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GyMMS | Gym Membership Management System</title>
-    <link rel="stylesheet" href="{% static 'core/css/index.css' %}">
-    <script defer src="{% static 'core/js/index.js' %}"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.3/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'core/style.css' %}">
+    <script defer src="{% static 'core/script.js' %}"></script>
 </head>
 <body>
-    <!-- Navigation Bar (separated partial) -->
-    {% include 'core/navbar.html' %}
+    <!-- Navigation Bar -->
+    <header class="navbar">
+        <div class="logo">
+            <a href="{% url 'core:index' %}">GyMMS</a>
+        </div>
+
+        <nav class="nav-links">
+            <a href="{% url 'dashboard:base' %}">Dashboard</a>
+            <a href="{% url 'memberships:base' %}">Memberships</a>
+            <a href="{% url 'metrics:base' %}">Metrics</a>
+        </nav>
+
+        <div class="profile-menu">
+            {% if user.is_authenticated %}
+                <div class="profile-icon" id="profile-icon">👤</div>
+                <div class="dropdown" id="profile-dropdown">
+                    <a href="#">Settings</a>
+                    <a href="{% url 'users:logout' %}">Logout</a>
+                </div>
+            {% else %}
+                <button onclick="location.href='{% url 'core:login' %}'" class="btn-login">Login</button>
+                <button onclick="location.href='{% url 'core:register' %}'" class="btn-register">Register</button>
+            {% endif %}
+        </div>
+    </header>
 
     <!-- Main Content -->
     <main class="landing">
         {% block content %}
+        {# If the user is authenticated, redirect them to the dashboard. This uses a small client-side redirect
+           so the template can handle the behaviour without changing view logic. #}
         {% if user.is_authenticated %}
             <script>
                 // Respect URL reversing on server side
-                winow.location.replace("{% url 'dashboard:dashboard' %}");
+                window.location.replace("{% url 'dashboard:base' %}");
             </script>
         {% else %}
-        <div class="container landing-grid">
+        <div class="max-w-6xl mx-auto mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             <!-- Left column: Welcome message -->
-            <div class="left-pane animate-entry">
-                <h1>Welcome to GyMMS</h1>
-                <p>
+            <div class="left-pane p-8 bg-white rounded-lg shadow-md">
+                <h1 class="text-4xl font-extrabold text-indigo-600 mb-4">Welcome to GyMMS</h1>
+                <p class="text-gray-700 leading-relaxed">
                     A Django-powered web app designed to simplify and automate gym membership management by providing efficient
                     subscription tracking, payment monitoring, and member activity metrics.
                 </p>
-                <p class="mt-6 muted text-sm">Manage members, payments, and see activity metrics all in one place.</p>
+                <p class="mt-6 text-sm text-gray-500">Manage members, payments, and see activity metrics all in one place.</p>
             </div>
 
             <!-- Right column: Login / Register forms with toggle -->
-            <div class="right-pane animate-entry">
-                <div class="form-header">
-                    <h2 id="form-title" class="text-2xl">Login</h2>
-                    <button id="toggle-btn" class="btn-link text-sm">Register</button>
+            <div class="right-pane p-6 bg-white rounded-lg shadow-md">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 id="form-title" class="text-2xl font-semibold text-gray-800">Login</h2>
+                    <button id="toggle-btn" class="text-sm text-indigo-600 hover:underline">Register</button>
                 </div>
 
                 <!-- Login form -->
-                <form id="login-form" method="POST" action="{% url 'core:login' %}">
+                <form id="login-form" method="POST" action="{% url 'core:login' %}" class="space-y-4">
                     {% csrf_token %}
-                    <div class="form-row">
-                        <label for="username">Username</label>
-                        <input type="text" name="username" id="username" required>
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                        <input type="text" name="username" id="username" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
 
-                    <div class="form-row">
-                        <label for="password">Password</label>
-                        <input type="password" name="password" id="password" required>
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" name="password" id="password" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-full">
+                    <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition">
                         Login
                     </button>
                 </form>
 
                 <!-- Register form (hidden by default) -->
-                <form id="register-form" method="POST" action="{% url 'core:register' %}" class="hidden">
+                <form id="register-form" method="POST" action="{% url 'core:register' %}" class="space-y-4 hidden">
                     {% csrf_token %}
-                    <div class="form-row">
-                        <label for="reg-username">Username</label>
-                        <input type="text" name="username" id="reg-username" required>
+                    <div>
+                        <label for="reg-username" class="block text-sm font-medium text-gray-700">Username</label>
+                        <input type="text" name="username" id="reg-username" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
 
-                    <div class="form-row">
-                        <label for="reg-email">Email</label>
-                        <input type="email" name="email" id="reg-email" required>
+                    <div>
+                        <label for="reg-email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" name="email" id="reg-email" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
 
-                    <div class="form-row">
-                        <label for="reg-phone">Phone Number</label>
-                        <input type="text" name="phone_number" id="reg-phone" required>
+                    <div>
+                        <label for="reg-phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                        <input type="text" name="phone_number" id="reg-phone" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
 
-                    <div class="form-row">
-                        <label for="reg-password">Password</label>
-                        <input type="password" name="password" id="reg-password" required>
+                    <div>
+                        <label for="reg-password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" name="password" id="reg-password" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
 
-                    <div class="form-row">
-                        <label for="reg-password2">Re-enter Password</label>
-                        <input type="password" name="password2" id="reg-password2" required>
+                    <div>
+                        <label for="reg-password2" class="block text-sm font-medium text-gray-700">Re-enter Password</label>
+                        <input type="password" name="password2" id="reg-password2" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-full">
+                    <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition">
                         Register
                     </button>
                 </form>
 
                 <!-- Error / success display (works if view passes `error` or messages) -->
                 {% if error %}
-                <p id="form-error" class="msg-error">{{ error }}</p>
+                <p id="form-error" class="mt-4 text-red-500 text-sm text-center">{{ error }}</p>
                 {% else %}
-                <p id="form-error" class="msg-error hidden"></p>
+                <p id="form-error" class="mt-4 text-red-500 text-sm text-center hidden"></p>
                 {% endif %}
             </div>
         </div>

@@ -30,7 +30,6 @@ INSTALLED_APPS = [
     # GyMMS apps
     "core",
     "dashboard",
-    "membership_plans",
     "memberships",
     "metrics",
     "payments",
@@ -103,7 +102,7 @@ DATABASES = {
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
-AUTH_USER_MODEL = 'users.User'
+AUTH_USER_MODEL = 'users.StaffUser'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -126,7 +125,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Manila"
 
 USE_I18N = True
 
@@ -150,4 +149,9 @@ MEDIA_ROOT = BASE_DIR / "media"             # Uploaded files
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Authentication settings
+LOGIN_URL = 'core:login'  # Redirect to login page if not authenticated
+LOGIN_REDIRECT_URL = 'dashboard:dashboard'  # Redirect after successful login
+LOGOUT_REDIRECT_URL = 'core:index'  # Redirect after logout
 

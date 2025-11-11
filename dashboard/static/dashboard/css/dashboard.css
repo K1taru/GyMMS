@@ -1,0 +1,571 @@
+/* Dashboard Styles - Matches GyMMS Theme */
+
+.dashboard-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem 1rem;
+}
+
+/* Dashboard Header */
+.dashboard-header {
+    margin-bottom: 2rem;
+}
+
+.dashboard-header h1 {
+    font-size: clamp(2rem, 4vw, 2.5rem);
+    color: var(--text);
+    margin: 0 0 0.5rem;
+    font-weight: 700;
+}
+
+.dashboard-subtitle {
+    color: var(--muted);
+    font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.live-time {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.live-indicator {
+    width: 8px;
+    height: 8px;
+    background: #ef4444;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Stat Card */
+.stat-card {
+    background: var(--card);
+    padding: 1.75rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--accent);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(16,24,40,0.12);
+}
+
+.stat-card.revenue {
+    border-left-color: #10b981;
+}
+
+.stat-card.members {
+    border-left-color: #3b82f6;
+}
+
+.stat-card.active {
+    border-left-color: #f59e0b;
+}
+
+.stat-card.alert {
+    border-left-color: #ef4444;
+}
+
+.stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 0.75rem;
+}
+
+.stat-header > div:first-child {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    background: rgba(4, 120, 87, 0.1);
+}
+
+.stat-card.revenue .stat-icon {
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.stat-card.members .stat-icon {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.stat-card.active .stat-icon {
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.stat-card.alert .stat-icon {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.stat-label {
+    font-size: 1rem;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Clickable stat labels */
+a.stat-label {
+    text-decoration: none;
+    color: var(--muted);
+    transition: color 0.2s ease;
+}
+
+a.stat-label:hover {
+    color: var(--accent);
+}
+
+.stat-label a {
+    text-decoration: none;
+    color: var(--muted);
+    transition: color 0.2s ease;
+}
+
+.stat-label a:hover {
+    color: var(--accent);
+}
+
+/* Revenue Privacy Toggle */
+.revenue-toggle {
+    background: rgba(16, 185, 129, 0.1);
+    border: none;
+    border-radius: 6px;
+    padding: 0.35rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.revenue-toggle:hover {
+    background: rgba(16, 185, 129, 0.2);
+    transform: scale(1.1);
+}
+
+.revenue-toggle:active {
+    transform: scale(0.95);
+}
+
+.revenue-toggle svg {
+    display: block;
+    color: #10b981;
+}
+
+.stat-value {
+    font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+    display: block;
+    overflow: hidden;
+}
+
+.revenue-amount {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+}
+
+.stat-trend {
+    font-size: 0.875rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    overflow: hidden;
+}
+
+.revenue-monthly {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.trend-up {
+    color: #10b981;
+}
+
+.trend-down {
+    color: #ef4444;
+}
+
+/* Content Grid */
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+@media (min-width: 1024px) {
+    .content-grid {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+/* Recent Activity Card */
+.activity-card {
+    background: var(--card);
+    padding: 1.75rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f4f6f9;
+}
+
+.card-title {
+    font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+}
+
+/* Clickable card titles */
+a.card-title {
+    text-decoration: none;
+    color: var(--text);
+    transition: color 0.2s ease;
+}
+
+a.card-title:hover {
+    color: var(--accent);
+}
+
+.card-badge {
+    background: var(--accent);
+    color: white;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Activity List */
+.activity-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+    border-bottom: 1px solid #f4f6f9;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-item:hover {
+    background: rgba(4, 120, 87, 0.05);
+}
+
+.activity-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.activity-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-name {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+.activity-time {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.activity-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.status-in {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.status-out {
+    background: rgba(107, 114, 128, 0.1);
+    color: var(--muted);
+}
+
+/* Quick Stats */
+.quick-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.mini-card {
+    background: var(--card);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+.mini-card-header {
+    font-size: 1rem;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Clickable mini card headers */
+a.mini-card-header {
+    text-decoration: none;
+    color: var(--muted);
+    transition: color 0.2s ease;
+    display: block;
+}
+
+a.mini-card-header:hover {
+    color: var(--accent);
+}
+
+.mini-card-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+}
+
+.mini-card-footer {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+/* Peak Hours Chart */
+.chart-container {
+    background: var(--card);
+    padding: 1.75rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    margin-top: 1.5rem;
+}
+
+.chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    height: 200px;
+    margin-top: 1rem;
+    padding-bottom: 30px;
+}
+
+.chart-bar {
+    flex: 1;
+    background: linear-gradient(to top, var(--accent), var(--accent-2));
+    border-radius: 4px 4px 0 0;
+    position: relative;
+    min-height: 10px;
+    transition: transform 0.2s ease;
+}
+
+.chart-bar:hover {
+    transform: translateY(-4px);
+}
+
+.chart-bar-label {
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.chart-bar-value {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--muted);
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Scrollbar Styling */
+.activity-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.activity-list::-webkit-scrollbar-track {
+    background: #f4f6f9;
+    border-radius: 10px;
+}
+
+.activity-list::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 10px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 1rem 0.75rem;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .stat-card {
+        padding: 1.5rem;
+    }
+    
+    .activity-card,
+    .mini-card,
+    .chart-container {
+        padding: 1.25rem;
+    }
+    
+    .content-grid {
+        gap: 1rem;
+    }
+    
+    .dashboard-subtitle {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .stat-value {
+        font-size: 1.75rem;
+    }
+    
+    .revenue-toggle {
+        padding: 0.3rem;
+    }
+    
+    .revenue-toggle svg {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
+    }
+    
+    .activity-item {
+        padding: 0.75rem;
+        gap: 0.75rem;
+    }
+    
+    .activity-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+    
+    .revenue-toggle {
+        padding: 0.25rem;
+    }
+    
+    .revenue-toggle svg {
+        width: 14px;
+        height: 14px;
+    }
+}

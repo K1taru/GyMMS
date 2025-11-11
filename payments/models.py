@@ -4,18 +4,20 @@ import uuid
 
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from membership_plans.models import Membership_Plan
 
 class Payment(models.Model):
     PAYMENT_METHODS = [
-        ('GooglePay', 'Google Pay'),
-        ('ApplePay', 'Apple Pay'),
+        ('Cash', 'Cash'),
         ('GCash', 'GCash'),
-        ('GoTyme', 'GoTyme'),
-        ('PayPal', 'PayPal'),
         ('Maya', 'Maya'),
-        ('InstaPay', 'InstaPay'),
-        ('Cash', 'Cash (Manual Payment)'),
+        ('Bank Transfer', 'Bank Transfer'),
+    ]
+    
+    PAYMENT_STATUS = [
+        ('Pending', 'Pending'),
+        ('Completed', 'Completed'),
+        ('Failed', 'Failed'),
+        ('Refunded', 'Refunded'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -25,11 +27,17 @@ class Payment(models.Model):
         limit_choices_to={'role': 'member'},
         related_name='payments'
     )
-    membership_type = models.ForeignKey(
-        'membership_plans.Membership_Plan', 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True
+    processed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='processed_payments',
+        limit_choices_to={'role__in': ['Owner', 'Staff']}
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=PAYMENT_STATUS,
+        default='Pending'
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     payment_date = models.DateTimeField(auto_now_add=True)

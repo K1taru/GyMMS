@@ -1,0 +1,706 @@
+/* Member Details Page Styles */
+
+/* ===========================
+   MODAL BASE STYLES
+   =========================== */
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.375rem;
+    color: var(--text);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.75rem;
+    color: var(--muted);
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s ease;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    color: var(--text);
+}
+
+.modal-body {
+    padding: 1.25rem 1.5rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-top: 2px solid #f3f4f6;
+}
+
+/* ===========================
+   CONTAINER
+   =========================== */
+
+/* Container */
+.edit-member-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+/* ===========================
+   HEADER SECTION
+   =========================== */
+
+.edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    gap: 1rem;
+}
+
+.header-left {
+    flex: 1;
+    min-width: 250px;
+}
+
+.header-left h1 {
+    font-size: 2rem;
+    color: var(--text);
+    margin: 0.5rem 0 0.25rem 0;
+    font-weight: 700;
+}
+
+.header-left .subtitle {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+/* Back Button */
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.5rem 0;
+    transition: all 0.2s ease;
+}
+
+.back-button:hover {
+    gap: 0.75rem;
+    color: var(--accent-2);
+}
+
+.back-button svg {
+    flex-shrink: 0;
+}
+
+/* Edit Button (btn-primary in header) */
+#toggleEditMode {
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--accent);
+    color: white;
+}
+
+#toggleEditMode:hover {
+    background: var(--accent-2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(4, 120, 87, 0.3);
+}
+
+#toggleEditMode svg {
+    flex-shrink: 0;
+}
+
+/* Status Badge */
+.member-status-badge {
+    flex-shrink: 0;
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status-badge.active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.expired {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-badge.inactive {
+    background: rgba(107, 114, 128, 0.1);
+    color: var(--muted);
+}
+
+/* ===========================
+   MEMBER ID CARD
+   =========================== */
+
+.member-id-card {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 24px rgba(4, 120, 87, 0.2);
+}
+
+.member-avatar-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    font-weight: 700;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.member-avatar-large.editable {
+    cursor: pointer;
+}
+
+.member-avatar-large.editable:hover {
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.photo-edit-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+}
+
+.photo-edit-overlay svg {
+    color: white;
+    flex-shrink: 0;
+}
+
+.member-id-info {
+    flex: 1;
+}
+
+.member-name {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+}
+
+.member-id-label {
+    font-size: 0.95rem;
+    opacity: 0.85;
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+}
+
+.member-id-value {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.member-joined {
+    font-size: 0.9rem;
+    opacity: 0.85;
+}
+
+.member-created-by {
+    font-size: 0.85rem;
+    opacity: 0.75;
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
+/* ===========================
+   FORM SECTIONS
+   =========================== */
+
+.form-section {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+    border: 1px solid #e5e7eb;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.section-header svg {
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.section-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+}
+
+/* ===========================
+   FORM GRID & GROUPS
+   =========================== */
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.form-grid .full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* ===========================
+   FORM INPUTS
+   =========================== */
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--card);
+    transition: all 0.2s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.1);
+}
+
+.form-group textarea {
+    resize: none;
+    min-height: 80px;
+}
+
+/* Readonly State (editable fields in view mode) */
+.edit-form input:read-only,
+.edit-form textarea:read-only,
+.edit-form select:disabled {
+    background: var(--bg);
+    border-color: #e5e7eb;
+    cursor: default;
+    color: var(--muted);
+}
+
+.edit-form input:read-only:focus,
+.edit-form textarea:read-only:focus,
+.edit-form select:disabled:focus {
+    outline: none;
+    border-color: #e5e7eb;
+    box-shadow: none;
+}
+
+/* Always Readonly/Disabled Fields (never editable) */
+.edit-form input.always-readonly,
+.edit-form select.always-disabled,
+.edit-form textarea.always-readonly {
+    background: #f3f4f6 !important;
+    border-color: #d1d5db !important;
+    cursor: not-allowed !important;
+    color: #9ca3af !important;
+}
+
+.edit-form input.always-readonly:focus,
+.edit-form select.always-disabled:focus,
+.edit-form textarea.always-readonly:focus {
+    box-shadow: none !important;
+    border-color: #d1d5db !important;
+}
+
+/* ===========================
+   FORM ACTIONS (Buttons)
+   =========================== */
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1.5rem 0;
+}
+
+/* Cancel Button (btn-secondary) */
+#cancelEdit,
+.form-actions .btn-secondary {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    background: #f3f4f6;
+    color: var(--text);
+}
+
+#cancelEdit:hover,
+.form-actions .btn-secondary:hover {
+    background: #e5e7eb;
+    transform: translateY(-1px);
+}
+
+/* Save Button (btn-primary in form) */
+.form-actions .btn-primary {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    background: var(--accent);
+    color: white;
+}
+
+.form-actions .btn-primary:hover {
+    background: var(--accent-2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(4, 120, 87, 0.3);
+}
+
+.form-actions .btn-primary svg,
+.form-actions .btn-secondary svg {
+    flex-shrink: 0;
+}
+
+/* ===========================
+   DELETE SECTION
+   =========================== */
+
+.delete-member-section {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    border: 2px solid #fee2e2;
+    border-radius: 12px;
+    background: #fef2f2;
+}
+
+.delete-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.delete-warning svg {
+    color: var(--danger);
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+}
+
+.delete-warning div {
+    flex: 1;
+}
+
+.delete-warning h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    color: #991b1b;
+    font-weight: 700;
+}
+
+.delete-warning p {
+    margin: 0;
+    color: #7f1d1d;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* Delete Button */
+#deleteMemberBtn,
+.btn-danger {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--danger);
+    color: white;
+}
+
+#deleteMemberBtn:hover,
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+#deleteMemberBtn:disabled,
+.btn-danger:disabled {
+    background: #fca5a5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+#deleteMemberBtn svg,
+.btn-danger svg {
+    flex-shrink: 0;
+}
+
+/* ===========================
+   RESPONSIVE DESIGN
+   =========================== */
+
+@media (max-width: 768px) {
+    .edit-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .header-actions {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .member-id-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+
+    .form-actions .btn-primary,
+    .form-actions .btn-secondary,
+    #cancelEdit {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .delete-warning {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    #deleteMemberBtn,
+    .btn-danger {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .edit-member-container {
+        padding: 0.5rem;
+    }
+
+    .header-left h1 {
+        font-size: 1.5rem;
+    }
+
+    .form-section {
+        padding: 1rem;
+    }
+
+    .member-id-card {
+        padding: 1.5rem;
+    }
+
+    .member-avatar-large {
+        width: 80px;
+        height: 80px;
+        font-size: 2rem;
+    }
+
+    .member-id-value {
+        font-size: 1rem;
+    }
+}
+
+/* ===========================
+   SHARED BUTTON STYLES
+   =========================== */
+
+.btn-primary {
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(4, 120, 87, 0.3);
+}
+
+.btn-secondary {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    background: #f3f4f6;
+    color: var(--text);
+}
+
+.btn-secondary:hover {
+    background: #e5e7eb;
+    transform: translateY(-1px);
+}

@@ -7,30 +7,54 @@
         <a href="{% url 'core:index' %}">GyMMS</a>
     </div>
 
-    <nav class="nav-links">
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu" aria-expanded="false">
+        <span id="menu-icon">☰</span>
+    </button>
+
+    <nav class="nav-links" id="nav-links">
         {% url 'dashboard:dashboard' as dashboard_url %}
         {% url 'memberships:memberships' as memberships_url %}
         {% url 'metrics:metrics' as metrics_url %}
         {% url 'payments:payments' as payments_url %}
 
-        <a href="{{ dashboard_url }}" class="{% if request.path == dashboard_url %}active{% endif %}" {% if request.path == dashboard_url %}aria-current="page"{% endif %}>Dashboard</a>
-        <a href="{{ memberships_url }}" class="{% if request.path == memberships_url %}active{% endif %}">Memberships</a>
-        <a href="{{ metrics_url }}" class="{% if request.path == metrics_url %}active{% endif %}">Metrics</a>
-        <a href="{{ payments_url }}" class="{% if request.path == payments_url %}active{% endif %}">Payments</a>
+        <a href="{% if user.is_authenticated %}{{ dashboard_url }}{% else %}#{% endif %}" 
+           class="nav-link {% if request.path == dashboard_url %}active{% endif %}"
+           {% if not user.is_authenticated %}data-requires-auth="true"{% endif %}
+           {% if request.path == dashboard_url %}aria-current="page"{% endif %}>Dashboard</a>
+        <a href="{% if user.is_authenticated %}{{ memberships_url }}{% else %}#{% endif %}" 
+           class="nav-link {% if request.path == memberships_url %}active{% endif %}"
+           {% if not user.is_authenticated %}data-requires-auth="true"{% endif %}>Memberships</a>
+        <a href="{% if user.is_authenticated %}{{ metrics_url }}{% else %}#{% endif %}" 
+           class="nav-link {% if request.path == metrics_url %}active{% endif %}"
+           {% if not user.is_authenticated %}data-requires-auth="true"{% endif %}>Metrics</a>
+        <a href="{% if user.is_authenticated %}{{ payments_url }}{% else %}#{% endif %}" 
+           class="nav-link {% if request.path == payments_url %}active{% endif %}"
+           {% if not user.is_authenticated %}data-requires-auth="true"{% endif %}>Payments</a>
     </nav>
 
     <div class="profile-menu">
-        <!-- Show profile icon for all users; dropdown contents differ by auth state -->
-        <div class="profile-icon" id="profile-icon" aria-haspopup="true" aria-expanded="false" title="Account">👤</div>
+        <div class="profile-icon" id="profile-icon" 
+             {% if not user.is_authenticated %}data-requires-auth="true"{% endif %}
+             aria-haspopup="true" aria-expanded="false" title="Account">👤</div>
+        {% if user.is_authenticated %}
         <div class="dropdown" id="profile-dropdown" role="menu" aria-label="Profile menu">
-            {% if user.is_authenticated %}
+            {% if user.role == 'Owner' %}
                 <a href="#" role="menuitem">Profile</a>
-                <a href="#" role="menuitem">Settings</a>
-                <a href="{% url 'users:logout' %}" role="menuitem">Logout</a>
-            {% else %}
-                <a href="{% url 'core:login' %}" role="menuitem">Login</a>
-                <a href="{% url 'core:register' %}" role="menuitem">Register</a>
             {% endif %}
+            <a href="#" role="menuitem">Settings</a>
+            <a href="{% url 'core:logout' %}" role="menuitem">Logout</a>
         </div>
+        {% endif %}
     </div>
 </header>
+
+<!-- Mobile overlay -->
+<div class="mobile-overlay" id="mobile-overlay"></div>
+
+<!-- Auth Alert Modal -->
+<div class="auth-alert" id="auth-alert" role="dialog" aria-labelledby="auth-alert-text" aria-modal="true">
+    <div class="alert-content">
+        <p id="auth-alert-text">Please log in to access this module.</p>
+        <button class="alert-button" id="alert-ok">OK</button>
+    </div>
+</div>

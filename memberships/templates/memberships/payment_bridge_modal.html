@@ -1,0 +1,36 @@
+{% load static %}
+<!-- Reusable Payment Bridge Modal -->
+<link rel="stylesheet" href="{% static 'memberships/css/payment_bridge_modal.css' %}">
+
+<!-- Payment Bridge Modal -->
+<div id="paymentBridgeModal" class="modal payment-bridge-modal" style="display: none;">
+	<div class="modal-content payment-bridge-modal-content">
+		<div class="payment-bridge-modal-header">
+			<div class="payment-bridge-icon" id="paymentBridgeIcon">
+				<!-- Icon will be inserted via JS -->
+			</div>
+			<h2 id="paymentBridgeTitle">Payment Required</h2>
+			<button class="modal-close" id="closePaymentBridgeBtn">&times;</button>
+		</div>
+		<div class="modal-body">
+			<div class="payment-bridge-body">
+				<p id="paymentBridgeMessage">This member's subscription has expired. Would you like to renew it?</p>
+				<div class="payment-bridge-info" id="paymentBridgeInfo">
+					<!-- Additional info will be inserted via JS -->
+				</div>
+			</div>
+		</div>
+		<div class="payment-bridge-modal-footer" id="paymentBridgeFooter">
+			<button type="button" class="payment-bridge-btn payment-bridge-btn-cancel" id="cancelPaymentBridgeBtn">Cancel</button>
+			<button type="button" class="payment-bridge-btn payment-bridge-btn-primary" id="confirmPaymentBridgeBtn">
+				<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+					<line x1="1" y1="10" x2="23" y2="10"></line>
+				</svg>
+				<span id="confirmPaymentBridgeBtnText">Renew Membership</span>
+			</button>
+		</div>
+	</div>
+</div>
+
+<script defer src="{% static 'memberships/js/payment_bridge_modal.js' %}"></script>
