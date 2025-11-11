@@ -87,14 +87,27 @@ function setupRevenueToggle() {
     // Always start hidden on page load
     let isHidden = true;
     
-    // Hide revenue immediately on page load (always default to hidden)
+    // Get values from data attributes
     const todayValue = revenueAmount.dataset.today;
-    const monthlyValue = revenueMonthly.dataset.monthly || revenueAmount.dataset.monthly;
+    const monthlyValue = revenueMonthly.dataset.monthly;
     
-    const asterisks = '₱' + '*'.repeat(todayValue.length);
-    const monthlyAsterisks = '₱' + '*'.repeat(monthlyValue.length);
+    console.log('[REVENUE TOGGLE] Today value:', todayValue);
+    console.log('[REVENUE TOGGLE] Monthly value:', monthlyValue);
     
-    revenueAmount.textContent = asterisks;
+    // Format number with commas
+    function formatCurrency(value) {
+        const num = parseFloat(value);
+        return num.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+    
+    // Hide revenue immediately on page load (always default to hidden)
+    const todayAsterisks = '₱' + '*'.repeat(formatCurrency(todayValue).length);
+    const monthlyAsterisks = '₱' + '*'.repeat(formatCurrency(monthlyValue).length);
+    
+    revenueAmount.textContent = todayAsterisks;
     revenueMonthly.textContent = monthlyAsterisks;
     
     // Show eye-off icon
@@ -106,30 +119,28 @@ function setupRevenueToggle() {
         
         if (isHidden) {
             // Hide revenue - show asterisks
-            const todayValue = revenueAmount.dataset.today;
-            const monthlyValue = revenueMonthly.dataset.monthly || revenueAmount.dataset.monthly;
+            const todayAsterisks = '₱' + '*'.repeat(formatCurrency(todayValue).length);
+            const monthlyAsterisks = '₱' + '*'.repeat(formatCurrency(monthlyValue).length);
             
-            const asterisks = '₱' + '*'.repeat(todayValue.length);
-            const monthlyAsterisks = '₱' + '*'.repeat(monthlyValue.length);
-            
-            revenueAmount.textContent = asterisks;
+            revenueAmount.textContent = todayAsterisks;
             revenueMonthly.textContent = monthlyAsterisks;
             
             // Swap icons
             eyeIcon.style.display = 'none';
             eyeOffIcon.style.display = 'block';
         } else {
-            // Show revenue - restore values
-            const todayValue = revenueAmount.dataset.today;
-            const monthlyValue = revenueMonthly.dataset.monthly || revenueAmount.dataset.monthly;
-            
-            revenueAmount.textContent = '₱' + todayValue;
-            revenueMonthly.textContent = '₱' + monthlyValue;
+            // Show revenue - restore values with comma formatting
+            revenueAmount.textContent = '₱' + formatCurrency(todayValue);
+            revenueMonthly.textContent = '₱' + formatCurrency(monthlyValue);
             
             // Swap icons
             eyeIcon.style.display = 'block';
             eyeOffIcon.style.display = 'none';
         }
+        
+        console.log('[REVENUE TOGGLE] Is hidden:', isHidden);
+        console.log('[REVENUE TOGGLE] Today displayed:', revenueAmount.textContent);
+        console.log('[REVENUE TOGGLE] Monthly displayed:', revenueMonthly.textContent);
     });
 }
 

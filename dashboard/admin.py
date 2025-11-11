@@ -5,7 +5,7 @@ from .models import GymCheckIn, DashboardStats
 class GymCheckInAdmin(admin.ModelAdmin):
     list_display = ('member', 'check_in_time', 'check_out_time', 'date', 'duration')
     list_filter = ('date', 'check_in_time')
-    search_fields = ('member__first_name', 'member__last_name', 'member__email')
+    search_fields = ('member__name', 'member__member_id', 'member__email')
     date_hierarchy = 'date'
     ordering = ('-check_in_time',)
     

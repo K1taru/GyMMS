@@ -39,8 +39,9 @@
         {% if user.is_authenticated %}
         <div class="dropdown" id="profile-dropdown" role="menu" aria-label="Profile menu">
             {% if user.role == 'Owner' %}
-                <a href="#" role="menuitem">Profile</a>
+                <a href="{% url 'users:admin' %}" role="menuitem">Admin</a>
             {% endif %}
+            <a href="#" role="menuitem">Profile</a>
             <a href="#" role="menuitem">Settings</a>
             <a href="{% url 'core:logout' %}" role="menuitem">Logout</a>
         </div>

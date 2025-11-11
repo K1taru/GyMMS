@@ -60,20 +60,20 @@
 
                 <!-- Stats Summary -->
                 <div class="stats-summary">
-                    <div class="stat-item">
-                        <div class="stat-label" onclick="filterByStatus('all')" style="cursor: pointer;">Total Members</div>
+                    <div class="stat-item stat-total" onclick="filterByStatus('all')">
+                        <div class="stat-label" style="cursor: pointer;">Total Members</div>
                         <div class="stat-value">{{ total_members }}</div>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-label" onclick="filterByStatus('active')" style="cursor: pointer;">Active</div>
+                    <div class="stat-item stat-active" onclick="filterByStatus('active')">
+                        <div class="stat-label" style="cursor: pointer;">Active</div>
                         <div class="stat-value active">{{ active_members }}</div>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-label" onclick="filterByStatus('expiring')" style="cursor: pointer;">Expiring Soon</div>
+                    <div class="stat-item stat-expiring" onclick="filterByStatus('expiring')">
+                        <div class="stat-label" style="cursor: pointer;">Expiring Soon</div>
                         <div class="stat-value expiring">{{ expiring_soon }}</div>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-label" onclick="filterByStatus('expired')" style="cursor: pointer;">Expired</div>
+                    <div class="stat-item stat-expired" onclick="filterByStatus('expired')">
+                        <div class="stat-label" style="cursor: pointer;">Expired</div>
                         <div class="stat-value expired">{{ expired_members }}</div>
                     </div>
                 </div>

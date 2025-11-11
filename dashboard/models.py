@@ -17,6 +17,10 @@ class GymCheckIn(models.Model):
         ordering = ['-check_in_time']
         verbose_name = 'Gym Check-In'
         verbose_name_plural = 'Gym Check-Ins'
+        indexes = [
+            models.Index(fields=['date']),
+            models.Index(fields=['member', 'date']),
+        ]
     
     def __str__(self):
         return f"{self.member.name} - {self.check_in_time.strftime('%Y-%m-%d %H:%M')}"
@@ -43,6 +47,9 @@ class DashboardStats(models.Model):
         ordering = ['-date']
         verbose_name = 'Dashboard Statistics'
         verbose_name_plural = 'Dashboard Statistics'
+        indexes = [
+            models.Index(fields=['date']),
+        ]
     
     def __str__(self):
         return f"Stats for {self.date}"

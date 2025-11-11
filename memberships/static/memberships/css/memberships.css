@@ -99,16 +99,66 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
-    padding: 1.5rem;
-    background: var(--card);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
 }
 
 .stat-item {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    padding: 1.5rem;
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 2px solid #f3f4f6;
+}
+
+.stat-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: #e5e7eb;
+}
+
+/* Specific stat card styles */
+.stat-item.stat-total {
+    border-left: 4px solid #6366f1;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.03) 0%, var(--card) 100%);
+}
+
+.stat-item.stat-total:hover {
+    border-left-color: #4f46e5;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, var(--card) 100%);
+}
+
+.stat-item.stat-active {
+    border-left: 4px solid #10b981;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, var(--card) 100%);
+}
+
+.stat-item.stat-active:hover {
+    border-left-color: #059669;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, var(--card) 100%);
+}
+
+.stat-item.stat-expiring {
+    border-left: 4px solid #f59e0b;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.03) 0%, var(--card) 100%);
+}
+
+.stat-item.stat-expiring:hover {
+    border-left-color: #d97706;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, var(--card) 100%);
+}
+
+.stat-item.stat-expired {
+    border-left: 4px solid #ef4444;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.03) 0%, var(--card) 100%);
+}
+
+.stat-item.stat-expired:hover {
+    border-left-color: #dc2626;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, var(--card) 100%);
 }
 
 .stat-label {
@@ -255,6 +305,39 @@
     white-space: nowrap;
 }
 
+/* Left align name column */
+.members-table td.col-name {
+    display: flex;
+    align-items: center;
+}
+
+/* Center align specific columns */
+.members-table td.col-member-id,
+.members-table td.col-start-date,
+.members-table td.col-end-date {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.members-table td.col-contact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.members-table td.col-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.members-table td.col-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* Override overflow for status and actions columns */
 .members-table td.col-status,
 .members-table td.col-actions {
@@ -307,12 +390,16 @@
     font-family: monospace;
     font-weight: 600;
     color: var(--accent);
+    display: inline-flex;
+    align-items: center;
 }
 
 .contact-info {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+    align-items: center;
+    text-align: center;
 }
 
 .member-sex {
