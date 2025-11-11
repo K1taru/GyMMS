@@ -1,0 +1,37 @@
+{% load static %}
+<!-- Reusable Delete Confirmation Modal -->
+<link rel="stylesheet" href="{% static 'memberships/css/delete_modal.css' %}">
+
+<div id="deleteConfirmationModal" class="delete-modal">
+	<div class="delete-modal-content">
+		<div class="delete-modal-header">
+			<h2>Delete Member</h2>
+			<button class="delete-modal-close" id="closeDeleteModalBtn">&times;</button>
+		</div>
+		<div class="delete-modal-body-wrapper">
+			<div class="delete-modal-body">
+				<div class="delete-icon-container">
+					<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<polyline points="3 6 5 6 21 6"></polyline>
+						<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 4 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+					</svg>
+				</div>
+				<h3 id="deleteModalTitle">Are you absolutely sure?</h3>
+				<p class="delete-modal-message" id="deleteModalMessage"></p>
+				<p class="delete-modal-warning" id="deleteModalWarning">This action cannot be undone!</p>
+			</div>
+		</div>
+		<div class="delete-modal-footer">
+			<button type="button" class="delete-modal-btn-secondary" id="cancelDeleteBtn">Cancel</button>
+			<button type="button" class="delete-modal-btn-danger" id="confirmDeleteBtn">
+				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<polyline points="3 6 5 6 21 6"></polyline>
+					<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+				</svg>
+				<span id="confirmDeleteBtnText">Yes, Delete Member</span>
+			</button>
+		</div>
+	</div>
+</div>
+
+<script defer src="{% static 'memberships/js/delete_modal.js' %}"></script>

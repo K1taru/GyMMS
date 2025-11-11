@@ -1,4 +1,6 @@
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 
-def payments_base(request):
-    return render(request, "payments/base.html")
+@login_required
+def payments(request):
+    return render(request, "payments/payments.html")
