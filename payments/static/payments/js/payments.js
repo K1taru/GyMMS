@@ -38,6 +38,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     });
 
+    // Trigger search on focus if there's existing text
+    memberSearchInput.addEventListener('focus', function() {
+        const query = this.value.trim();
+        if (query.length >= 2) {
+            // If we already have results displayed, just show them
+            if (searchResults.innerHTML && searchResults.querySelector('.search-result-item, .no-results')) {
+                searchResults.classList.add('active');
+            } else {
+                // Otherwise fetch new results
+                searchMembers(query);
+            }
+        }
+    });
+
     // Click outside to close search results
     document.addEventListener('click', function(e) {
         if (!memberSearchInput.contains(e.target) && !searchResults.contains(e.target)) {
@@ -101,9 +115,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update member info card
         updateMemberInfoCard(member);
-        
-        // Show member info card
-        memberInfoCard.style.display = 'block';
     }
 
     // Update member info card
@@ -113,14 +124,37 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('display_member_phone').textContent = member.phone_number || 'N/A';
         document.getElementById('display_member_end_date').textContent = formatDate(member.end_date);
         
-        // Update status badge
+        // Update member avatar (photo or initials)
+        const avatarContainer = document.getElementById('memberAvatarContainer');
+        if (member.photo) {
+            avatarContainer.innerHTML = `<img src="${member.photo}" alt="Member Photo" class="member-photo-img">`;
+        } else {
+            const initials = member.name ? member.name.charAt(0).toUpperCase() : '?';
+            avatarContainer.innerHTML = `<div class="member-initials">${initials}</div>`;
+        }
+        
+        // Update status badge with proper status logic
         const statusContainer = document.getElementById('display_member_status');
-        const isActive = member.status === 'active';
-        statusContainer.innerHTML = `
-            <span class="badge badge-${isActive ? 'active' : 'expired'}">
-                ${isActive ? 'Active' : 'Expired'}
-            </span>
-        `;
+        let statusBadge = '';
+        
+        if (member.status === 'active') {
+            if (member.is_expiring_soon) {
+                statusBadge = '<span class="status-badge expiring">Expiring Soon</span>';
+            } else {
+                statusBadge = '<span class="status-badge active">Active</span>';
+            }
+        } else if (member.status === 'expired') {
+            statusBadge = '<span class="status-badge expired">Expired</span>';
+        } else if (member.status === 'inactive') {
+            statusBadge = '<span class="status-badge inactive">Inactive</span>';
+        } else if (member.status === 'expiring') {
+            statusBadge = '<span class="status-badge expiring">Expiring Soon</span>';
+        } else {
+            // Fallback
+            statusBadge = `<span class="status-badge">${member.status || '—'}</span>`;
+        }
+        
+        statusContainer.innerHTML = statusBadge;
     }
 
     // Format date
@@ -138,18 +172,21 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Digital payment methods that require reference number
     const digitalMethods = ['GCash', 'Maya', 'GTyme', 'Bank Transfer', 'PayPal', 'Debit Card', 'Credit Card'];
+    const referenceRequired = document.getElementById('referenceRequired');
     
     paymentMethodSelect.addEventListener('change', function() {
         const method = this.value;
         
-        // Show reference number field for digital payments
+        // Enable/disable reference number field based on payment method
         if (digitalMethods.includes(method)) {
-            referenceSection.style.display = 'block';
+            referenceInput.disabled = false;
             referenceInput.required = true;
+            referenceRequired.style.display = 'inline';
         } else {
-            referenceSection.style.display = 'none';
+            referenceInput.disabled = true;
             referenceInput.required = false;
             referenceInput.value = '';
+            referenceRequired.style.display = 'none';
         }
     });
 
@@ -164,9 +201,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const selectedPricing = document.querySelector('input[name="pricing_id"]:checked');
-        if (!selectedPricing) {
-            showNotification('Please select a duration', 'error');
+        const pricingSelect = document.getElementById('pricing_id');
+        if (!pricingSelect.value) {
+            showNotification('Please select a membership plan', 'error');
             return;
         }
 
@@ -175,11 +212,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Check reference number for digital payments
+        // Check reference number for digital payments - REQUIRED
         const method = paymentMethodSelect.value;
-        if (digitalMethods.includes(method) && !referenceInput.value.trim()) {
-            showNotification('Reference/Transaction number is required for this payment method', 'error');
-            return;
+        if (digitalMethods.includes(method)) {
+            const refValue = referenceInput.value.trim();
+            if (!refValue) {
+                showNotification('Reference/Transaction number is required for digital payments', 'error');
+                referenceInput.focus();
+                return;
+            }
         }
 
         // Prepare form data
@@ -213,8 +254,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 paymentForm.reset();
                 memberIdHidden.value = '';
                 memberSearchInput.value = '';
-                memberInfoCard.style.display = 'none';
-                referenceSection.style.display = 'none';
+                
+                // Reset member info card to empty state
+                document.getElementById('display_member_name').textContent = 'No member selected';
+                document.getElementById('display_member_id').textContent = '—';
+                document.getElementById('display_member_phone').textContent = '—';
+                document.getElementById('display_member_end_date').textContent = '—';
+                document.getElementById('display_member_status').innerHTML = '<span class="status-badge">—</span>';
+                document.getElementById('memberAvatarContainer').innerHTML = '<div class="member-initials">?</div>';
+                
+                // Reset reference field to disabled state
+                referenceInput.disabled = true;
+                referenceInput.value = '';
+                referenceRequired.style.display = 'none';
                 selectedMember = null;
                 
                 // Reload page to show updated payment in table
@@ -328,10 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ===== INITIALIZE =====
     
-    // If member already selected (from URL param), ensure info card is visible
-    if (memberIdHidden.value) {
-        memberInfoCard.style.display = 'block';
-    }
-
+    // Member info card is always visible now (no need to show/hide)
+    
     console.log('Payment processing page initialized');
 });

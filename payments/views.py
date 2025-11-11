@@ -18,6 +18,7 @@ def payments(request):
     # Get member_id from URL parameter if provided (from bridge)
     member_id = request.GET.get('member_id')
     selected_member = None
+    today = timezone.now().date()
     
     if member_id:
         try:
@@ -45,6 +46,7 @@ def payments(request):
         'pricing_options': pricing_options,
         'recent_payments': recent_payments,
         'search_query': search_query,
+        'today': today,
     }
     
     return render(request, "payments/payments.html", context)
@@ -155,14 +157,36 @@ def search_members(request):
         is_deleted=False
     )[:10]  # Limit to 10 results
     
-    members_data = [{
-        'member_id': m.member_id,
-        'name': m.name,
-        'phone_number': m.phone_number,
-        'email': m.email or '',
-        'status': 'active' if m.is_active and m.end_date >= timezone.now().date() else 'expired',
-        'end_date': m.end_date.strftime('%b %d, %Y')
-    } for m in members]
+    today = timezone.now().date()
+    
+    members_data = []
+    for m in members:
+        # Determine status
+        if m.is_active:
+            if m.end_date >= today:
+                if m.is_expiring_soon():
+                    status = 'expiring'
+                    is_expiring_soon = True
+                else:
+                    status = 'active'
+                    is_expiring_soon = False
+            else:
+                status = 'expired'
+                is_expiring_soon = False
+        else:
+            status = 'inactive'
+            is_expiring_soon = False
+        
+        members_data.append({
+            'member_id': m.member_id,
+            'name': m.name,
+            'phone_number': m.phone_number,
+            'email': m.email or '',
+            'status': status,
+            'is_expiring_soon': is_expiring_soon,
+            'end_date': m.end_date.strftime('%b %d, %Y'),
+            'photo': m.photo.url if m.photo else None
+        })
     
     return JsonResponse({'members': members_data})
 

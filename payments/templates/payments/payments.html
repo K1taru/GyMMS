@@ -11,7 +11,7 @@
 <body>
 	{% include 'core/navbar.html' %}
 
-	<main class="container" style="margin-top:1rem">
+	<main class="container" style="margin-top:0.5rem">
 		<div class="payments-container">
 			<!-- Header -->
 			<div class="payments-header">
@@ -28,124 +28,152 @@
 				<form id="paymentForm">
 					{% csrf_token %}
 					
-					<!-- Member Search/Selection -->
-					<div class="form-section">
-						<label for="member_search">Search Member</label>
-						<div class="member-search-container">
-							<input 
-								type="text" 
-								id="member_search" 
-								placeholder="Search by Member ID, Name, Phone, or Email..."
-								value="{% if selected_member %}{{ selected_member.member_id }} - {{ selected_member.name }}{% endif %}"
-								autocomplete="off"
-							>
-							<div class="search-results" id="searchResults"></div>
-						</div>
-						<input type="hidden" id="member_id" name="member_id" value="{% if selected_member %}{{ selected_member.member_id }}{% endif %}" required>
-					</div>
-
-					<!-- Selected Member Info -->
-					<div class="member-info-card" id="memberInfoCard" {% if not selected_member %}style="display: none;"{% endif %}>
-						<div class="member-info-header">
-							<h3>Selected Member</h3>
-						</div>
-						<div class="member-info-grid">
-							<div class="info-item">
-								<span class="info-label">Member ID:</span>
-								<span class="info-value" id="display_member_id">{% if selected_member %}{{ selected_member.member_id }}{% endif %}</span>
-							</div>
-							<div class="info-item">
-								<span class="info-label">Name:</span>
-								<span class="info-value" id="display_member_name">{% if selected_member %}{{ selected_member.name }}{% endif %}</span>
-							</div>
-							<div class="info-item">
-								<span class="info-label">Phone:</span>
-								<span class="info-value" id="display_member_phone">{% if selected_member %}{{ selected_member.phone_number }}{% endif %}</span>
-							</div>
-							<div class="info-item">
-								<span class="info-label">Current Status:</span>
-								<span class="info-value" id="display_member_status">
-									{% if selected_member %}
-										{% if selected_member.is_active and selected_member.end_date >= today %}
-											<span class="badge badge-active">Active</span>
-										{% else %}
-											<span class="badge badge-expired">Expired</span>
-										{% endif %}
-									{% endif %}
-								</span>
-							</div>
-							<div class="info-item">
-								<span class="info-label">Expires:</span>
-								<span class="info-value" id="display_member_end_date">{% if selected_member %}{{ selected_member.end_date|date:"M d, Y" }}{% endif %}</span>
-							</div>
-						</div>
-					</div>
-
-					<!-- Pricing Selection -->
-					<div class="form-section">
-						<label for="pricing_id">Select Duration</label>
-						<div class="pricing-options">
-							{% for pricing in pricing_options %}
-							<label class="pricing-card">
-								<input type="radio" name="pricing_id" value="{{ pricing.id }}" required>
-								<div class="pricing-content">
-									<div class="pricing-duration">{{ pricing.duration_label }}</div>
-									<div class="pricing-price">₱{{ pricing.price }}</div>
-									<div class="pricing-days">{{ pricing.duration_days }} days</div>
+					<div class="form-grid">
+						<!-- LEFT COLUMN -->
+						<div class="form-left">
+							<!-- Member Search -->
+							<div class="form-section">
+								<label for="member_search">Search Member</label>
+								<div class="member-search-container">
+									<input 
+										type="text" 
+										id="member_search" 
+										placeholder="Search by ID, Name, Phone, or Email..."
+										value="{% if selected_member %}{{ selected_member.member_id }} - {{ selected_member.name }}{% endif %}"
+										autocomplete="off"
+									>
+									<div class="search-results" id="searchResults"></div>
 								</div>
-							</label>
-							{% empty %}
-							<p class="text-muted">No pricing options available. Please contact the administrator.</p>
-							{% endfor %}
+								<input type="hidden" id="member_id" name="member_id" value="{% if selected_member %}{{ selected_member.member_id }}{% endif %}" required>
+							</div>
+
+							<!-- Selected Member Info -->
+							<div class="member-info-card" id="memberInfoCard">
+								<div class="member-photo-section">
+									<div class="member-avatar" id="memberAvatarContainer">
+										{% if selected_member %}
+											{% if selected_member.photo %}
+												<img 
+													id="display_member_photo" 
+													src="{{ selected_member.photo.url }}" 
+													alt="Member Photo"
+													class="member-photo-img"
+												>
+											{% else %}
+												<div class="member-initials" id="display_member_initials">{{ selected_member.name|first|upper }}</div>
+											{% endif %}
+										{% else %}
+											<div class="member-initials" id="display_member_initials">?</div>
+										{% endif %}
+									</div>
+									<div class="member-basic-info">
+										<h3 id="display_member_name">{% if selected_member %}{{ selected_member.name }}{% else %}No member selected{% endif %}</h3>
+										<p class="member-id-display" id="display_member_id">{% if selected_member %}{{ selected_member.member_id }}{% else %}—{% endif %}</p>
+									</div>
+								</div>
+								
+								<div class="member-details-grid">
+									<div class="info-item">
+										<span class="info-label">Phone:</span>
+										<span class="info-value" id="display_member_phone">{% if selected_member %}{{ selected_member.phone_number }}{% else %}—{% endif %}</span>
+									</div>
+									<div class="info-item">
+										<span class="info-label">Status:</span>
+										<span class="info-value" id="display_member_status">
+											{% if selected_member %}
+												{% if selected_member.is_active %}
+													{% if selected_member.end_date >= today %}
+														{% if selected_member.is_expiring_soon %}
+															<span class="status-badge expiring">Expiring Soon</span>
+														{% else %}
+															<span class="status-badge active">Active</span>
+														{% endif %}
+													{% else %}
+														<span class="status-badge expired">Expired</span>
+													{% endif %}
+												{% else %}
+													<span class="status-badge inactive">Inactive</span>
+												{% endif %}
+											{% else %}
+												<span class="status-badge">—</span>
+											{% endif %}
+										</span>
+									</div>
+									<div class="info-item">
+										<span class="info-label">Expires:</span>
+										<span class="info-value" id="display_member_end_date">{% if selected_member %}{{ selected_member.end_date|date:"M d, Y" }}{% else %}—{% endif %}</span>
+									</div>
+								</div>
+							</div>
 						</div>
-					</div>
 
-					<!-- Payment Method -->
-					<div class="form-section">
-						<label for="payment_method">Payment Method</label>
-						<select id="payment_method" name="payment_method" required>
-							<option value="">Select payment method...</option>
-							<option value="Cash">Cash</option>
-							<option value="GCash">GCash</option>
-							<option value="Maya">Maya</option>
-							<option value="GTyme">GTyme</option>
-							<option value="Bank Transfer">Bank Transfer</option>
-							<option value="PayPal">PayPal</option>
-							<option value="Debit Card">Debit Card</option>
-							<option value="Credit Card">Credit Card</option>
-						</select>
-					</div>
+						<!-- RIGHT COLUMN -->
+						<div class="form-right">
+							<!-- Payment Method and Membership Plan - Side by Side -->
+							<div class="payment-pricing-grid">
+								<!-- Payment Method -->
+								<div class="form-section">
+									<label for="payment_method">Payment Method</label>
+									<select id="payment_method" name="payment_method" required>
+										<option value="">Select payment method...</option>
+										<option value="Cash">Cash</option>
+										<option value="GCash">GCash</option>
+										<option value="Maya">Maya</option>
+										<option value="GTyme">GTyme</option>
+										<option value="Bank Transfer">Bank Transfer</option>
+										<option value="PayPal">PayPal</option>
+										<option value="Debit Card">Debit Card</option>
+										<option value="Credit Card">Credit Card</option>
+									</select>
+								</div>
 
-					<!-- Reference Number (conditional) -->
-					<div class="form-section" id="referenceSection" style="display: none;">
-						<label for="reference_number">Reference / Transaction Number</label>
-						<input 
-							type="text" 
-							id="reference_number" 
-							name="reference_number" 
-							placeholder="Enter reference/transaction number"
-						>
-					</div>
+								<!-- Membership Plan -->
+								<div class="form-section">
+									<label for="pricing_id">Select Membership Plan</label>
+									<select id="pricing_id" name="pricing_id" required>
+										<option value="">Select membership plan...</option>
+										{% for pricing in pricing_options %}
+										<option value="{{ pricing.id }}">{{ pricing.duration_label }} - ₱{{ pricing.price }} ({{ pricing.duration_days }} days)</option>
+										{% endfor %}
+									</select>
+								</div>
+							</div>
 
-					<!-- Remarks -->
-					<div class="form-section">
-						<label for="remarks">Remarks (Optional)</label>
-						<textarea 
-							id="remarks" 
-							name="remarks" 
-							rows="3" 
-							placeholder="Add any additional notes..."
-						></textarea>
-					</div>
+			<!-- Reference Number (conditional) -->
+			<div class="form-section" id="referenceSection">
+				<label for="reference_number">
+					Reference / Transaction Number 
+					<span class="required-indicator" id="referenceRequired" style="display: none;">*</span>
+				</label>
+				<input 
+					type="text" 
+					id="reference_number" 
+					name="reference_number" 
+					placeholder="Enter reference/transaction number"
+					disabled
+				>
+			</div>			<!-- Remarks -->
+							<div class="form-section">
+								<label for="remarks">Remarks (Optional)</label>
+								<textarea 
+									id="remarks" 
+									name="remarks" 
+									rows="2" 
+									placeholder="Add any additional notes..."
+									style="resize: none;"
+								></textarea>
+							</div>
 
-					<!-- Submit Button -->
-					<div class="form-actions">
-						<button type="submit" class="btn-primary" id="submitBtn">
-							<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-								<polyline points="20 6 9 17 4 12"></polyline>
-							</svg>
-							Process Payment
-						</button>
+							<!-- Submit Button -->
+							<div class="form-actions">
+								<button type="submit" class="btn-primary" id="submitBtn">
+									<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<polyline points="20 6 9 17 4 12"></polyline>
+									</svg>
+									Process Payment
+								</button>
+							</div>
+						</div>
 					</div>
 				</form>
 			</div>
