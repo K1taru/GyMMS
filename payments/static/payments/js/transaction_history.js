@@ -6,14 +6,73 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateFrom = document.getElementById('dateFrom');
     const dateTo = document.getElementById('dateTo');
     const paymentMethodFilter = document.getElementById('paymentMethodFilter');
-    const statusFilter = document.getElementById('statusFilter');
     const clearFiltersBtn = document.getElementById('clearFilters');
     const prevPageBtn = document.getElementById('prevPage');
     const nextPageBtn = document.getElementById('nextPage');
     const pageInput = document.getElementById('pageInput');
     const perPageSelect = document.getElementById('perPageSelect');
+    const periodBtns = document.querySelectorAll('.period-btn');
 
     let filterTimeout = null;
+
+    // ===== TIME PERIOD FILTER FOR STATS =====
+
+    periodBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Update active state
+            periodBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+
+            // Fetch stats for selected period
+            const period = this.getAttribute('data-period');
+            fetchStats(period);
+        });
+    });
+
+    function fetchStats(period) {
+        // Add loading state to stat cards
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.classList.add('loading');
+        });
+
+        // Fetch stats from server
+        fetch(`/payments/transactions/stats/?period=${period}`)
+            .then(response => response.json())
+            .then(data => {
+                // Update stat values with animation
+                updateStatValue('totalRevenue', `₱${parseFloat(data.total_revenue || 0).toFixed(2)}`);
+                updateStatValue('totalCount', data.total_count || 0);
+                updateStatValue('averageAmount', `₱${parseFloat(data.average_amount || 0).toFixed(2)}`);
+
+                // Remove loading state
+                document.querySelectorAll('.stat-card').forEach(card => {
+                    card.classList.remove('loading');
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching stats:', error);
+                showNotification('Failed to load statistics', 'error');
+                
+                // Remove loading state
+                document.querySelectorAll('.stat-card').forEach(card => {
+                    card.classList.remove('loading');
+                });
+            });
+    }
+
+    function updateStatValue(elementId, newValue) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            // Fade out
+            element.style.opacity = '0';
+            
+            setTimeout(() => {
+                element.textContent = newValue;
+                // Fade in
+                element.style.opacity = '1';
+            }, 150);
+        }
+    }
 
     // ===== FILTER HANDLING =====
 
@@ -49,18 +108,12 @@ document.addEventListener('DOMContentLoaded', function() {
         applyFilters();
     });
 
-    // Status filter
-    statusFilter.addEventListener('change', function() {
-        applyFilters();
-    });
-
     // Clear filters
     clearFiltersBtn.addEventListener('click', function() {
         searchInput.value = '';
         dateFrom.value = '';
         dateTo.value = '';
         paymentMethodFilter.value = '';
-        statusFilter.value = '';
         
         // Redirect to base URL without filters
         window.location.href = '/payments/transactions';
@@ -143,11 +196,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add payment method filter
         if (paymentMethodFilter.value) {
             url.searchParams.set('payment_method', paymentMethodFilter.value);
-        }
-        
-        // Add status filter
-        if (statusFilter.value) {
-            url.searchParams.set('status', statusFilter.value);
         }
         
         // Add pagination
@@ -323,6 +371,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ===== INITIALIZE =====
 
+    // Load initial stats (1D by default)
+    fetchStats('1d');
+
     console.log('Transaction history page initialized');
     
     // Set filter values from URL params on load
@@ -330,7 +381,37 @@ document.addEventListener('DOMContentLoaded', function() {
     if (urlParams.has('payment_method')) {
         paymentMethodFilter.value = urlParams.get('payment_method');
     }
-    if (urlParams.has('status')) {
-        statusFilter.value = urlParams.get('status');
+
+    // ===== NOTIFICATION FUNCTION =====
+
+    function showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        
+        // Style the notification
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            background: ${type === 'error' ? '#ef4444' : '#10b981'};
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, 3000);
     }
 });

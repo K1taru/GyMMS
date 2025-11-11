@@ -230,12 +230,12 @@ def transaction_history(request):
     # Payment method filter
     payment_method = request.GET.get('payment_method', '').strip()
     if payment_method:
-        transactions = transactions.filter(payment_method=payment_method)
-    
-    # Status filter
-    status = request.GET.get('status', '').strip()
-    if status:
-        transactions = transactions.filter(status=status)
+        if payment_method == 'Digital':
+            # Filter for all digital payment methods (exclude Cash)
+            digital_methods = ['GCash', 'Maya', 'GTyme', 'Bank Transfer', 'PayPal', 'Debit Card', 'Credit Card']
+            transactions = transactions.filter(payment_method__in=digital_methods)
+        else:
+            transactions = transactions.filter(payment_method=payment_method)
     
     # Calculate summary statistics for filtered results
     stats = transactions.aggregate(
@@ -274,7 +274,6 @@ def transaction_history(request):
         'date_from': date_from,
         'date_to': date_to,
         'payment_method': payment_method,
-        'status': status,
         'total_revenue': stats['total_revenue'] or 0,
         'total_count': stats['total_count'] or 0,
         'average_amount': stats['average_amount'] or 0,
@@ -288,3 +287,46 @@ def transaction_history(request):
     }
     
     return render(request, "payments/transaction_history.html", context)
+
+
+@login_required
+def transaction_stats(request):
+    """
+    Get transaction statistics for a specific time period (AJAX endpoint)
+    """
+    period = request.GET.get('period', '1d').lower()
+    
+    # Calculate date range based on period
+    now = timezone.now()
+    
+    period_map = {
+        '1d': timedelta(days=1),
+        '1w': timedelta(weeks=1),
+        '1m': timedelta(days=30),
+        '6m': timedelta(days=180),
+        '1y': timedelta(days=365),
+        'all': None  # All time
+    }
+    
+    delta = period_map.get(period)
+    
+    # Filter transactions by date
+    transactions = Payment.objects.all()
+    
+    if delta:
+        start_date = now - delta
+        transactions = transactions.filter(payment_date__gte=start_date)
+    
+    # Calculate statistics
+    stats = transactions.aggregate(
+        total_revenue=Sum('amount'),
+        total_count=Count('id'),
+        average_amount=Avg('amount')
+    )
+    
+    return JsonResponse({
+        'total_revenue': float(stats['total_revenue'] or 0),
+        'total_count': stats['total_count'] or 0,
+        'average_amount': float(stats['average_amount'] or 0),
+        'period': period
+    })
