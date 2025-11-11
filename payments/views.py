@@ -337,6 +337,7 @@ def transaction_history(request):
 def transaction_stats(request):
     """
     Get transaction statistics for a specific time period (AJAX endpoint)
+    Also respects search and filter parameters
     """
     period = request.GET.get('period', '1d').lower()
     
@@ -354,12 +355,66 @@ def transaction_stats(request):
     
     delta = period_map.get(period)
     
-    # Filter transactions by date
+    # Start with all transactions
     transactions = Payment.objects.all()
     
+    # Apply time period filter
     if delta:
         start_date = now - delta
         transactions = transactions.filter(payment_date__gte=start_date)
+    
+    # Apply additional filters (search, payment method, member type, date range)
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        transactions = transactions.filter(
+            Q(stored_member_id__icontains=search_query) |
+            Q(stored_member_name__icontains=search_query) |
+            Q(reference_number__icontains=search_query) |
+            Q(id__icontains=search_query)
+        )
+    
+    # Date filters (override time period if provided)
+    date_from = request.GET.get('date_from', '').strip()
+    date_to = request.GET.get('date_to', '').strip()
+    
+    if date_from:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            # If date_from is provided, use it instead of period-based start_date
+            transactions = Payment.objects.filter(payment_date__date__gte=date_from_obj)
+            if search_query:
+                transactions = transactions.filter(
+                    Q(stored_member_id__icontains=search_query) |
+                    Q(stored_member_name__icontains=search_query) |
+                    Q(reference_number__icontains=search_query) |
+                    Q(id__icontains=search_query)
+                )
+        except ValueError:
+            pass
+    
+    if date_to:
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            transactions = transactions.filter(payment_date__date__lte=date_to_obj)
+        except ValueError:
+            pass
+    
+    # Payment method filter
+    payment_method = request.GET.get('payment_method', '').strip()
+    if payment_method:
+        if payment_method == 'Digital':
+            digital_methods = ['GCash', 'Maya', 'GoTyme', 'Bank Transfer', 'PayPal', 'Debit Card', 'Credit Card']
+            transactions = transactions.filter(payment_method__in=digital_methods)
+        else:
+            transactions = transactions.filter(payment_method=payment_method)
+    
+    # Member type filter (members vs walk-ins)
+    member_type = request.GET.get('member_type', '').strip()
+    if member_type:
+        if member_type == 'member':
+            transactions = transactions.exclude(stored_member_id='GYMMSGUEST')
+        elif member_type == 'walkin':
+            transactions = transactions.filter(stored_member_id='GYMMSGUEST')
     
     # Calculate statistics
     stats = transactions.aggregate(
@@ -373,4 +428,127 @@ def transaction_stats(request):
         'total_count': stats['total_count'] or 0,
         'average_amount': float(stats['average_amount'] or 0),
         'period': period
+    })
+
+
+@login_required
+def get_transactions_ajax(request):
+    """
+    AJAX endpoint for fetching filtered transactions without page reload
+    """
+    # Start with all payments
+    transactions = Payment.objects.select_related('member', 'processed_by').all()
+    
+    # Apply filters
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        transactions = transactions.filter(
+            Q(stored_member_id__icontains=search_query) |
+            Q(stored_member_name__icontains=search_query) |
+            Q(reference_number__icontains=search_query) |
+            Q(id__icontains=search_query)
+        )
+    
+    # Date filters
+    date_from = request.GET.get('date_from', '').strip()
+    date_to = request.GET.get('date_to', '').strip()
+    
+    if date_from:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            transactions = transactions.filter(payment_date__date__gte=date_from_obj)
+        except ValueError:
+            pass
+    
+    if date_to:
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            transactions = transactions.filter(payment_date__date__lte=date_to_obj)
+        except ValueError:
+            pass
+    
+    # Payment method filter
+    payment_method = request.GET.get('payment_method', '').strip()
+    if payment_method:
+        if payment_method == 'Digital':
+            # Filter for all digital payment methods (exclude Cash)
+            digital_methods = ['GCash', 'Maya', 'GoTyme', 'Bank Transfer', 'PayPal', 'Debit Card', 'Credit Card']
+            transactions = transactions.filter(payment_method__in=digital_methods)
+        else:
+            transactions = transactions.filter(payment_method=payment_method)
+    
+    # Member type filter (members vs walk-ins)
+    member_type = request.GET.get('member_type', '').strip()
+    if member_type:
+        if member_type == 'member':
+            # Regular members (not walk-ins)
+            transactions = transactions.exclude(stored_member_id='GYMMSGUEST')
+        elif member_type == 'walkin':
+            # Walk-in guests only
+            transactions = transactions.filter(stored_member_id='GYMMSGUEST')
+    
+    # Calculate summary statistics for filtered results
+    stats = transactions.aggregate(
+        total_revenue=Sum('amount'),
+        total_count=Count('id'),
+        average_amount=Avg('amount')
+    )
+    
+    # Pagination
+    per_page = request.GET.get('per_page', '10')
+    try:
+        per_page = int(per_page)
+        if per_page not in [10, 25, 50, 100]:
+            per_page = 10
+    except ValueError:
+        per_page = 10
+    
+    page = request.GET.get('page', '1')
+    
+    paginator = Paginator(transactions, per_page)
+    
+    try:
+        transactions_page = paginator.page(page)
+    except PageNotAnInteger:
+        transactions_page = paginator.page(1)
+    except EmptyPage:
+        transactions_page = paginator.page(paginator.num_pages)
+    
+    # Calculate start and end index
+    start_index = (transactions_page.number - 1) * per_page + 1
+    end_index = min(start_index + per_page - 1, paginator.count)
+    
+    # Prepare transaction data for JSON response
+    transactions_data = []
+    for transaction in transactions_page:
+        transactions_data.append({
+            'id': str(transaction.id),
+            'payment_date': transaction.payment_date.strftime('%b %d, %Y %H:%M'),
+            'stored_member_id': transaction.stored_member_id,
+            'stored_member_name': transaction.stored_member_name,
+            'stored_plan_label': transaction.stored_plan_label or 'N/A',
+            'stored_duration_days': transaction.stored_duration_days,
+            'amount': str(transaction.amount),
+            'payment_method': transaction.payment_method,
+            'reference_number': transaction.reference_number or '—',
+            'processed_by': transaction.processed_by.username if transaction.processed_by else '—',
+        })
+    
+    return JsonResponse({
+        'transactions': transactions_data,
+        'pagination': {
+            'current_page': transactions_page.number,
+            'total_pages': paginator.num_pages,
+            'has_previous': transactions_page.has_previous(),
+            'has_next': transactions_page.has_next(),
+            'start_index': start_index,
+            'end_index': end_index,
+            'total_count': paginator.count,
+            'per_page': per_page,
+        },
+        'stats': {
+            'total_revenue': float(stats['total_revenue'] or 0),
+            'total_count': stats['total_count'] or 0,
+            'average_amount': float(stats['average_amount'] or 0),
+        }
     })

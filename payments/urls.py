@@ -9,4 +9,5 @@ urlpatterns = [
     path("search-members/", views.search_members, name="search_members"),
     path("transactions/", views.transaction_history, name="transaction_history"),
     path("transactions/stats/", views.transaction_stats, name="transaction_stats"),
+    path("transactions/ajax/", views.get_transactions_ajax, name="get_transactions_ajax"),
 ]

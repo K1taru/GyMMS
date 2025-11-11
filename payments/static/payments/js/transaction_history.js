@@ -1,4 +1,4 @@
-// ===== TRANSACTION HISTORY JAVASCRIPT =====
+// ===== TRANSACTION HISTORY JAVASCRIPT WITH AJAX =====
 
 document.addEventListener('DOMContentLoaded', function() {
     // Elements
@@ -15,6 +15,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const periodBtns = document.querySelectorAll('.period-btn');
 
     let filterTimeout = null;
+    let currentFilters = {
+        search: searchInput.value || '',
+        date_from: dateFrom.value || '',
+        date_to: dateTo.value || '',
+        payment_method: paymentMethodFilter.value || '',
+        member_type: memberTypeFilter.value || '',
+        page: 1,
+        per_page: parseInt(perPageSelect.value) || 10
+    };
 
     // ===== TIME PERIOD FILTER FOR STATS =====
 
@@ -36,8 +45,19 @@ document.addEventListener('DOMContentLoaded', function() {
             card.classList.add('loading');
         });
 
+        // Build query string with current filters
+        const params = new URLSearchParams();
+        params.set('period', period);
+        
+        // Include current filters in stats request
+        if (currentFilters.search) params.set('search', currentFilters.search);
+        if (currentFilters.date_from) params.set('date_from', currentFilters.date_from);
+        if (currentFilters.date_to) params.set('date_to', currentFilters.date_to);
+        if (currentFilters.payment_method) params.set('payment_method', currentFilters.payment_method);
+        if (currentFilters.member_type) params.set('member_type', currentFilters.member_type);
+
         // Fetch stats from server
-        fetch(`/payments/transactions/stats/?period=${period}`)
+        fetch(`/payments/transactions/stats/?${params.toString()}`)
             .then(response => response.json())
             .then(data => {
                 // Update stat values with animation
@@ -83,6 +103,8 @@ document.addEventListener('DOMContentLoaded', function() {
             clearTimeout(filterTimeout);
         }
         filterTimeout = setTimeout(() => {
+            currentFilters.search = this.value.trim();
+            currentFilters.page = 1; // Reset to first page
             applyFilters();
         }, 500);
     });
@@ -93,6 +115,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dateTo.value && this.value > dateTo.value) {
             dateTo.value = this.value;
         }
+        currentFilters.date_from = this.value;
+        currentFilters.page = 1;
         applyFilters();
     });
 
@@ -101,16 +125,24 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dateFrom.value && this.value < dateFrom.value) {
             dateFrom.value = this.value;
         }
+        currentFilters.date_to = this.value;
+        currentFilters.page = 1;
         applyFilters();
     });
 
     // Payment method filter
     paymentMethodFilter.addEventListener('change', function() {
+        currentFilters.payment_method = this.value;
+        currentFilters.page = 1;
         applyFilters();
     });
 
     // Member type filter
     memberTypeFilter.addEventListener('change', function() {
+        console.log('[FILTER] Member type changed to:', this.value);
+        currentFilters.member_type = this.value;
+        currentFilters.page = 1;
+        console.log('[FILTER] Current filters:', currentFilters);
         applyFilters();
     });
 
@@ -122,27 +154,34 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentMethodFilter.value = '';
         memberTypeFilter.value = '';
         
-        // Redirect to base URL without filters
-        window.location.href = '/payments/transactions';
+        currentFilters = {
+            search: '',
+            date_from: '',
+            date_to: '',
+            payment_method: '',
+            member_type: '',
+            page: 1,
+            per_page: parseInt(perPageSelect.value) || 10
+        };
+        
+        applyFilters();
     });
 
     // ===== PAGINATION HANDLING =====
 
     // Previous page
     prevPageBtn.addEventListener('click', function() {
-        const currentPage = parseInt(pageInput.value);
-        if (currentPage > 1) {
-            pageInput.value = currentPage - 1;
+        if (currentFilters.page > 1) {
+            currentFilters.page--;
             applyFilters();
         }
     });
 
     // Next page
     nextPageBtn.addEventListener('click', function() {
-        const currentPage = parseInt(pageInput.value);
         const maxPage = parseInt(pageInput.max);
-        if (currentPage < maxPage) {
-            pageInput.value = currentPage + 1;
+        if (currentFilters.page < maxPage) {
+            currentFilters.page++;
             applyFilters();
         }
     });
@@ -160,6 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         this.value = page;
+        currentFilters.page = page;
         applyFilters();
     });
 
@@ -173,57 +213,215 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Per page selector
     perPageSelect.addEventListener('change', function() {
-        // Reset to page 1 when changing items per page
-        pageInput.value = 1;
+        currentFilters.per_page = parseInt(this.value);
+        currentFilters.page = 1; // Reset to first page
         applyFilters();
     });
 
-    // ===== APPLY FILTERS FUNCTION =====
+    // ===== APPLY FILTERS FUNCTION (AJAX) =====
 
     function applyFilters() {
-        const url = new URL(window.location);
+        // Build query string
+        const params = new URLSearchParams();
         
-        // Clear existing params
-        url.search = '';
+        if (currentFilters.search) params.set('search', currentFilters.search);
+        if (currentFilters.date_from) params.set('date_from', currentFilters.date_from);
+        if (currentFilters.date_to) params.set('date_to', currentFilters.date_to);
+        if (currentFilters.payment_method) params.set('payment_method', currentFilters.payment_method);
+        if (currentFilters.member_type) params.set('member_type', currentFilters.member_type);
+        if (currentFilters.page > 1) params.set('page', currentFilters.page);
+        if (currentFilters.per_page !== 10) params.set('per_page', currentFilters.per_page);
         
-        // Add search query
-        const searchQuery = searchInput.value.trim();
-        if (searchQuery) {
-            url.searchParams.set('search', searchQuery);
+        console.log('[APPLY FILTERS] Params:', params.toString());
+        console.log('[APPLY FILTERS] Current filters:', currentFilters);
+        
+        // Update URL without reload (for sharing/bookmarking)
+        const newUrl = `/payments/transactions${params.toString() ? '?' + params.toString() : ''}`;
+        window.history.pushState({}, '', newUrl);
+        
+        // Show loading state
+        showLoading();
+        
+        // Fetch filtered data
+        const ajaxUrl = `/payments/transactions/ajax/?${params.toString()}`;
+        console.log('[APPLY FILTERS] Fetching from:', ajaxUrl);
+        
+        fetch(ajaxUrl)
+            .then(response => response.json())
+            .then(data => {
+                console.log('[APPLY FILTERS] Response:', data);
+                updateTable(data.transactions);
+                updatePagination(data.pagination);
+                updateStats(data.stats);
+                
+                // Reset time period buttons to show "All" since we're using custom filters
+                periodBtns.forEach(b => b.classList.remove('active'));
+                const allBtn = document.querySelector('.period-btn[data-period="all"]');
+                if (allBtn) {
+                    allBtn.classList.add('active');
+                }
+                
+                hideLoading();
+            })
+            .catch(error => {
+                console.error('Error fetching transactions:', error);
+                showNotification('Failed to load transactions', 'error');
+                hideLoading();
+            });
+    }
+
+    // ===== UPDATE TABLE FUNCTION =====
+
+    function updateTable(transactions) {
+        const tbody = document.querySelector('.transactions-table tbody');
+        
+        if (transactions.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="empty-state">
+                        <div class="empty-icon">📊</div>
+                        <p>No transactions found</p>
+                        <small>Try adjusting your filters or search criteria</small>
+                    </td>
+                </tr>
+            `;
+            return;
         }
         
-        // Add date range
-        if (dateFrom.value) {
-            url.searchParams.set('date_from', dateFrom.value);
-        }
-        if (dateTo.value) {
-            url.searchParams.set('date_to', dateTo.value);
-        }
+        let html = '';
+        transactions.forEach(transaction => {
+            const transactionIdShort = transaction.id.substring(0, 8);
+            const planInfo = transaction.stored_plan_label !== 'N/A' && transaction.stored_duration_days > 0
+                ? `${transaction.stored_plan_label} <small>(${transaction.stored_duration_days} days)</small>`
+                : transaction.stored_plan_label;
+            
+            html += `
+                <tr>
+                    <td>
+                        <span class="transaction-id" title="${transaction.id}" style="cursor: pointer;">
+                            ${transactionIdShort}...
+                        </span>
+                    </td>
+                    <td>${transaction.payment_date}</td>
+                    <td><span class="member-id-badge">${transaction.stored_member_id}</span></td>
+                    <td>${transaction.stored_member_name}</td>
+                    <td>
+                        <span class="plan-info">
+                            ${planInfo}
+                        </span>
+                    </td>
+                    <td class="amount">₱${transaction.amount}</td>
+                    <td>
+                        <span class="method-badge method-${transaction.payment_method.toLowerCase().replace(/\s/g, '')}">
+                            ${transaction.payment_method}
+                        </span>
+                    </td>
+                    <td>${transaction.reference_number}</td>
+                    <td>${transaction.processed_by}</td>
+                </tr>
+            `;
+        });
         
-        // Add payment method filter
-        if (paymentMethodFilter.value) {
-            url.searchParams.set('payment_method', paymentMethodFilter.value);
-        }
+        tbody.innerHTML = html;
         
-        // Add member type filter
-        if (memberTypeFilter.value) {
-            url.searchParams.set('member_type', memberTypeFilter.value);
-        }
+        // Re-attach click handlers for transaction IDs
+        attachTransactionIdHandlers();
+    }
+
+    // ===== UPDATE PAGINATION FUNCTION =====
+
+    function updatePagination(pagination) {
+        // Update page input
+        pageInput.value = pagination.current_page;
+        pageInput.max = pagination.total_pages;
         
-        // Add pagination
-        const page = parseInt(pageInput.value);
-        if (page && page > 1) {
-            url.searchParams.set('page', page);
-        }
+        // Update pagination info
+        const paginationInfo = document.querySelector('.pagination-info');
+        paginationInfo.textContent = `Showing ${pagination.start_index} to ${pagination.end_index} of ${pagination.total_count} transactions`;
         
-        // Add per page
-        const perPage = parseInt(perPageSelect.value);
-        if (perPage && perPage !== 10) {
-            url.searchParams.set('per_page', perPage);
-        }
+        // Update page display
+        const pageDisplay = document.querySelector('.page-input-group span:last-child');
+        pageDisplay.textContent = `of ${pagination.total_pages}`;
         
-        // Navigate to filtered URL
-        window.location.href = url.toString();
+        // Update button states
+        prevPageBtn.disabled = !pagination.has_previous;
+        nextPageBtn.disabled = !pagination.has_next;
+        
+        // Update current filters page
+        currentFilters.page = pagination.current_page;
+    }
+
+    // ===== UPDATE STATS FUNCTION =====
+
+    function updateStats(stats) {
+        updateStatValue('totalRevenue', `₱${parseFloat(stats.total_revenue || 0).toFixed(2)}`);
+        updateStatValue('totalCount', stats.total_count || 0);
+        updateStatValue('averageAmount', `₱${parseFloat(stats.average_amount || 0).toFixed(2)}`);
+    }
+
+    // ===== LOADING STATE =====
+
+    function showLoading() {
+        const tbody = document.querySelector('.transactions-table tbody');
+        tbody.style.opacity = '0.5';
+        tbody.style.pointerEvents = 'none';
+        
+        // Add loading overlay if it doesn't exist
+        if (!document.querySelector('.loading-overlay')) {
+            const overlay = document.createElement('div');
+            overlay.className = 'loading-overlay';
+            overlay.innerHTML = `
+                <div class="loading-spinner"></div>
+            `;
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.1);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+            `;
+            
+            const spinner = overlay.querySelector('.loading-spinner');
+            spinner.style.cssText = `
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #3498db;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                animation: spin 1s linear infinite;
+            `;
+            
+            // Add animation
+            if (!document.querySelector('style[data-spinner]')) {
+                const style = document.createElement('style');
+                style.setAttribute('data-spinner', 'true');
+                style.textContent = `
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(overlay);
+        }
+    }
+
+    function hideLoading() {
+        const tbody = document.querySelector('.transactions-table tbody');
+        tbody.style.opacity = '1';
+        tbody.style.pointerEvents = 'auto';
+        
+        const overlay = document.querySelector('.loading-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
     }
 
     // ===== KEYBOARD SHORTCUTS =====
@@ -248,27 +446,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ===== COPY TRANSACTION ID =====
+    // ===== ATTACH TRANSACTION ID CLICK HANDLERS =====
 
-    // Add click to copy functionality for transaction IDs
-    document.querySelectorAll('.transaction-id').forEach(element => {
-        element.addEventListener('click', function() {
-            const fullId = this.getAttribute('title');
-            
-            // Copy to clipboard
-            navigator.clipboard.writeText(fullId).then(() => {
-                showNotification('Transaction ID copied to clipboard!', 'success');
-            }).catch(err => {
-                console.error('Failed to copy:', err);
-                showNotification('Failed to copy transaction ID', 'error');
+    function attachTransactionIdHandlers() {
+        document.querySelectorAll('.transaction-id').forEach(element => {
+            element.addEventListener('click', function() {
+                const fullId = this.getAttribute('title');
+                
+                // Copy to clipboard
+                navigator.clipboard.writeText(fullId).then(() => {
+                    showNotification('Transaction ID copied to clipboard!', 'success');
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    showNotification('Failed to copy transaction ID', 'error');
+                });
             });
         });
-        
-        // Add pointer cursor
-        element.style.cursor = 'pointer';
-    });
+    }
 
-    // ===== UTILITY FUNCTIONS =====
+    // ===== NOTIFICATION FUNCTION =====
 
     function showNotification(message, type = 'info') {
         // Create notification element
@@ -331,102 +527,61 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
 
-    // ===== EXPORT FUNCTIONALITY (Optional) =====
+    // ===== INITIALIZE =====
 
-    // Add export button dynamically if needed
-    function addExportButton() {
-        const header = document.querySelector('.page-header');
-        if (header && !document.getElementById('exportBtn')) {
-            const exportBtn = document.createElement('button');
-            exportBtn.id = 'exportBtn';
-            exportBtn.className = 'btn-export';
-            exportBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" x2="12" y1="15" y2="3"/>
-                </svg>
-                Export CSV
-            `;
-            exportBtn.style.cssText = `
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                padding: 0.75rem 1.5rem;
-                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.2s ease;
-            `;
-            
-            exportBtn.addEventListener('click', function() {
-                // Build export URL with current filters
-                const exportUrl = new URL('/payments/transactions/export', window.location.origin);
-                const params = new URLSearchParams(window.location.search);
-                params.forEach((value, key) => {
-                    exportUrl.searchParams.set(key, value);
-                });
-                
-                // Trigger download
-                window.location.href = exportUrl.toString();
-            });
-            
-            header.appendChild(exportBtn);
-        }
+    // Set filter values from URL params on load
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    console.log('[INIT] URL Params:', urlParams.toString());
+    console.log('[INIT] Initial currentFilters:', currentFilters);
+    
+    // Initialize filters from URL
+    if (urlParams.has('search')) {
+        searchInput.value = urlParams.get('search');
+        currentFilters.search = urlParams.get('search');
+    }
+    if (urlParams.has('date_from')) {
+        dateFrom.value = urlParams.get('date_from');
+        currentFilters.date_from = urlParams.get('date_from');
+    }
+    if (urlParams.has('date_to')) {
+        dateTo.value = urlParams.get('date_to');
+        currentFilters.date_to = urlParams.get('date_to');
+    }
+    if (urlParams.has('payment_method')) {
+        paymentMethodFilter.value = urlParams.get('payment_method');
+        currentFilters.payment_method = urlParams.get('payment_method');
+    }
+    if (urlParams.has('member_type')) {
+        const memberType = urlParams.get('member_type');
+        console.log('[INIT] Setting member_type from URL:', memberType);
+        memberTypeFilter.value = memberType;
+        currentFilters.member_type = memberType;
+        console.log('[INIT] memberTypeFilter.value after set:', memberTypeFilter.value);
+    }
+    if (urlParams.has('page')) {
+        currentFilters.page = parseInt(urlParams.get('page'));
+    }
+    if (urlParams.has('per_page')) {
+        const perPageValue = urlParams.get('per_page');
+        perPageSelect.value = perPageValue;
+        currentFilters.per_page = parseInt(perPageValue);
     }
 
-    // Uncomment to enable export button
-    // addExportButton();
-
-    // ===== INITIALIZE =====
+    console.log('[INIT] Final currentFilters:', currentFilters);
+    console.log('[INIT] memberTypeFilter element:', memberTypeFilter);
+    console.log('[INIT] memberTypeFilter.value:', memberTypeFilter.value);
 
     // Load initial stats (1D by default)
     fetchStats('1d');
 
-    console.log('Transaction history page initialized');
-    
-    // Set filter values from URL params on load
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('payment_method')) {
-        paymentMethodFilter.value = urlParams.get('payment_method');
-    }
-    if (urlParams.has('member_type')) {
-        memberTypeFilter.value = urlParams.get('member_type');
-    }
+    // Attach initial transaction ID handlers
+    attachTransactionIdHandlers();
 
-    // ===== NOTIFICATION FUNCTION =====
+    // Handle browser back/forward
+    window.addEventListener('popstate', function() {
+        location.reload();
+    });
 
-    function showNotification(message, type = 'info') {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.textContent = message;
-        
-        // Style the notification
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 1rem 1.5rem;
-            background: ${type === 'error' ? '#ef4444' : '#10b981'};
-            color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            z-index: 10000;
-            animation: slideIn 0.3s ease;
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => {
-                notification.remove();
-            }, 300);
-        }, 3000);
-    }
+    console.log('Transaction history page initialized with AJAX filtering');
 });

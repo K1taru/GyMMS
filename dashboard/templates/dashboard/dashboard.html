@@ -74,7 +74,7 @@
 									</button>
 								</div>
 								<div class="stat-value">
-									<span class="revenue-amount" data-today="{{ today_revenue|floatformat:2 }}" data-monthly="{{ monthly_revenue|floatformat:2 }}">₱{{ today_revenue|floatformat:2 }}</span>
+									<span class="revenue-amount" data-today="{{ today_revenue|floatformat:2 }}">₱{{ today_revenue|floatformat:2 }}</span>
 								</div>
 								<div class="stat-trend">
 									Monthly: <span class="revenue-monthly" data-monthly="{{ monthly_revenue|floatformat:2 }}">₱{{ monthly_revenue|floatformat:2 }}</span>
@@ -190,6 +190,6 @@
 	</main>
 
 	<script defer src="{% static 'core/js/index.js' %}"></script>
-	<script defer src="{% static 'dashboard/js/dashboard.js' %}"></script>
+	<script defer src="{% static 'dashboard/js/dashboard.js' %}?v=3.0"></script>
 </body>
 </html>

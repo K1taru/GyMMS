@@ -4,8 +4,9 @@ from django.utils import timezone
 from django.db.models import Count, Sum, Q
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from datetime import timedelta
+from datetime import timedelta, datetime
 import json
+import zoneinfo
 
 from .models import GymCheckIn, DashboardStats
 from memberships.models import Member
@@ -13,8 +14,11 @@ from payments.models import Payment
 
 @login_required
 def dashboard(request):
-    today = timezone.now().date()
+    # Get current time in Manila timezone
+    manila_tz = zoneinfo.ZoneInfo('Asia/Manila')
     now = timezone.now()
+    manila_now = now.astimezone(manila_tz)
+    today = manila_now.date()
     
     # Get today's check-ins
     today_check_ins = GymCheckIn.objects.filter(date=today)
@@ -46,16 +50,44 @@ def dashboard(request):
     ).count()
     
     # Revenue statistics
-    today_revenue = Payment.objects.filter(
-        payment_date__date=today,
-        status='Completed'
-    ).aggregate(total=Sum('amount'))['total'] or 0
+    # Debug: Print today's date for verification
+    print(f"[DASHBOARD REVENUE] Today's date (Manila): {today}")
+    print(f"[DASHBOARD REVENUE] Manila now: {manila_now}")
+    print(f"[DASHBOARD REVENUE] UTC now: {now}")
     
-    monthly_revenue = Payment.objects.filter(
-        payment_date__gte=month_start,
-        payment_date__lte=now,
+    # Calculate start and end of today in Manila timezone
+    manila_today_start = datetime.combine(today, datetime.min.time()).replace(tzinfo=manila_tz)
+    manila_today_end = datetime.combine(today, datetime.max.time()).replace(tzinfo=manila_tz)
+    
+    print(f"[DASHBOARD REVENUE] Today start (Manila): {manila_today_start}")
+    print(f"[DASHBOARD REVENUE] Today end (Manila): {manila_today_end}")
+    
+    # Get today's payments with detailed logging
+    today_payments = Payment.objects.filter(
+        payment_date__gte=manila_today_start,
+        payment_date__lte=manila_today_end,
         status='Completed'
-    ).aggregate(total=Sum('amount'))['total'] or 0
+    )
+    print(f"[DASHBOARD REVENUE] Today's payment count: {today_payments.count()}")
+    for payment in today_payments:
+        print(f"[DASHBOARD REVENUE] Payment: {payment.id} - Amount: {payment.amount} - Date: {payment.payment_date} - Status: {payment.status}")
+    
+    today_revenue = today_payments.aggregate(total=Sum('amount'))['total'] or 0
+    print(f"[DASHBOARD REVENUE] Today's total revenue: {today_revenue}")
+    
+    # Calculate start of month in Manila timezone
+    month_start_dt = datetime.combine(month_start, datetime.min.time()).replace(tzinfo=manila_tz)
+    
+    # Get monthly payments
+    monthly_payments = Payment.objects.filter(
+        payment_date__gte=month_start_dt,
+        payment_date__lte=manila_now,
+        status='Completed'
+    )
+    print(f"[DASHBOARD REVENUE] Monthly payment count: {monthly_payments.count()}")
+    
+    monthly_revenue = monthly_payments.aggregate(total=Sum('amount'))['total'] or 0
+    print(f"[DASHBOARD REVENUE] Monthly total revenue: {monthly_revenue}")
     
     # Recent check-ins (last 10, ordered by most recent)
     recent_check_ins = today_check_ins.select_related('member').order_by('-check_in_time')[:10]
@@ -202,7 +234,11 @@ def log_checkin(request):
 @require_http_methods(["GET"])
 def get_stats(request):
     """Get updated dashboard statistics for AJAX refresh"""
-    today = timezone.now().date()
+    # Get current time in Manila timezone
+    manila_tz = zoneinfo.ZoneInfo('Asia/Manila')
+    now = timezone.now()
+    manila_now = now.astimezone(manila_tz)
+    today = manila_now.date()
     
     # Get today's check-ins
     today_check_ins = GymCheckIn.objects.filter(date=today)

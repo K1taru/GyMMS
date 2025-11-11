@@ -91,16 +91,16 @@
 							Payment Method
 						</label>
 						<select id="paymentMethodFilter">
-							<option value="">All Methods</option>
-							<option value="Cash">Cash</option>
-							<option value="Digital">Digital Transactions (All)</option>
-							<option value="GCash">GCash</option>
-							<option value="Maya">Maya</option>
-							<option value="GoTyme">GoTyme</option>
-							<option value="Bank Transfer">Bank Transfer</option>
-							<option value="PayPal">PayPal</option>
-							<option value="Debit Card">Debit Card</option>
-							<option value="Credit Card">Credit Card</option>
+							<option value="" {% if not payment_method %}selected{% endif %}>All Methods</option>
+							<option value="Cash" {% if payment_method == 'Cash' %}selected{% endif %}>Cash</option>
+							<option value="Digital" {% if payment_method == 'Digital' %}selected{% endif %}>Digital Transactions (All)</option>
+							<option value="GCash" {% if payment_method == 'GCash' %}selected{% endif %}>GCash</option>
+							<option value="Maya" {% if payment_method == 'Maya' %}selected{% endif %}>Maya</option>
+							<option value="GoTyme" {% if payment_method == 'GoTyme' %}selected{% endif %}>GoTyme</option>
+							<option value="Bank Transfer" {% if payment_method == 'Bank Transfer' %}selected{% endif %}>Bank Transfer</option>
+							<option value="PayPal" {% if payment_method == 'PayPal' %}selected{% endif %}>PayPal</option>
+							<option value="Debit Card" {% if payment_method == 'Debit Card' %}selected{% endif %}>Debit Card</option>
+							<option value="Credit Card" {% if payment_method == 'Credit Card' %}selected{% endif %}>Credit Card</option>
 						</select>
 					</div>
 
@@ -116,9 +116,9 @@
 							Customer Type
 						</label>
 						<select id="memberTypeFilter">
-							<option value="">All Customers</option>
-							<option value="member">Members Only</option>
-							<option value="walkin">Walk-ins Only</option>
+							<option value="" {% if not member_type %}selected{% endif %}>All Customers</option>
+							<option value="member" {% if member_type == 'member' %}selected{% endif %}>Members Only</option>
+							<option value="walkin" {% if member_type == 'walkin' %}selected{% endif %}>Walk-ins Only</option>
 						</select>
 					</div>
 
@@ -321,6 +321,6 @@
 		</div>
 	</main>
 
-	<script defer src="{% static 'payments/js/transaction_history.js' %}"></script>
+	<script defer src="{% static 'payments/js/transaction_history.js' %}?v=2.0"></script>
 </body>
 </html>
