@@ -6,6 +6,8 @@ app_name = "users"
 urlpatterns = [
     path("", views.base, name="base"),
     path("admin/", views.admin_panel, name="admin"),
+    path("admin/staff_management/", views.staff_management, name="staff_management"),
+    path("admin/membership_pricing/", views.membership_pricing, name="membership_pricing"),
     path("admin/staff/create/", views.create_staff, name="create_staff"),
     path("admin/staff/<int:staff_id>/", views.get_staff, name="get_staff"),
     path("admin/staff/update/", views.update_staff, name="update_staff"),
@@ -14,4 +16,6 @@ urlpatterns = [
     path("admin/pricing/<int:pricing_id>/", views.get_pricing, name="get_pricing"),
     path("admin/pricing/update/", views.update_pricing, name="update_pricing"),
     path("admin/pricing/delete/<int:pricing_id>/", views.delete_pricing, name="delete_pricing"),
+    path("profile/", views.profile, name="profile"),
+    path("profile/delete_photo/", views.delete_profile_photo, name="delete_profile_photo"),
 ]

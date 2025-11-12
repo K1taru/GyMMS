@@ -3,17 +3,18 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 
 class StaffUser(AbstractUser):
+    profile_image = models.ImageField(upload_to='staff_photos/', null=True, blank=True)
     ROLE_CHOICES = [
-        ('Owner', 'owner'),
-        ('Staff', 'staff'),
+        ('Owner', 'Owner'),
+        ('Staff', 'Staff'),
     ]
     
     # Login & Basic Staff Requirements
     username = models.CharField(max_length=150, unique=True)
     name = models.CharField(max_length=255, blank=True, help_text='Full name of the staff member')
-    email = models.EmailField(unique=True)
+    email = models.EmailField(unique=False)
     phone_number = models.CharField(max_length=15, null=True, blank=True)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='staff')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='Staff')
     created_by = models.ForeignKey(
         'self',
         on_delete=models.SET_NULL,
@@ -28,8 +29,10 @@ class StaffUser(AbstractUser):
     last_password_change = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        if self.role == 'Staff' and (not self.created_by or self.created_by.role != 'Owner'):
-            raise ValueError("Staff accounts can only be created by Owners")
+        # Skip validation for superusers or if no created_by (initial setup)
+        if not self.is_superuser and self.role == 'Staff':
+            if self.created_by and self.created_by.role != 'Owner':
+                raise ValueError("Staff accounts can only be created by Owners")
         super().save(*args, **kwargs)
 
     def set_password(self, raw_password):

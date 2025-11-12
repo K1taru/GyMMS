@@ -5,18 +5,120 @@
 
 /* Photo Options Modal - Higher z-index to appear above other modals */
 #photoOptionsModal {
-	z-index: 1001;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 10001;
+	background: rgba(0, 0, 0, 0.6);
+	backdrop-filter: blur(4px);
+	display: none;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
 }
 
+/* Show modal when style is set to flex */
+#photoOptionsModal[style*="display: flex"] {
+	display: flex !important;
+}
+
+@keyframes fadeIn {
+	from { 
+		opacity: 0;
+		backdrop-filter: blur(0px);
+	}
+	to { 
+		opacity: 1;
+		backdrop-filter: blur(4px);
+	}
+}
+
+@keyframes fadeOut {
+	from { 
+		opacity: 1;
+		backdrop-filter: blur(4px);
+	}
+	to { 
+		opacity: 0;
+		backdrop-filter: blur(0px);
+	}
+}
+
+/* Photo modal content - properly centered */
 .photo-modal-content {
-	max-width: 400px;
+	background: #ffffff;
+	border-radius: 12px;
+	max-width: 450px;
+	width: 100%;
+	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+	overflow: hidden;
+	animation: photoModalSlideUp 0.3s ease;
+	margin: 0;
+}
+
+@keyframes photoModalSlideUp {
+	from {
+		transform: translateY(50px) scale(0.95);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0) scale(1);
+		opacity: 1;
+	}
+}
+
+/* Modal Header */
+.modal-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1.25rem 1.5rem;
+	border-bottom: 2px solid #f3f4f6;
+	background-color: #ffffff;
+}
+
+.modal-header h2 {
+	margin: 0;
+	padding: 0;
+	font-size: 1.375rem;
+	color: #1f2937;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.modal-close {
+	background: none;
+	border: none;
+	font-size: 1.75rem;
+	color: #6b7280;
+	cursor: pointer;
+	line-height: 1;
+	transition: color 0.2s ease;
+	padding: 0;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.modal-close:hover {
+	color: #1f2937;
+}
+
+.modal-body {
+	padding: 1.25rem 1.5rem;
+	background-color: #ffffff;
 }
 
 .photo-options-body {
 	display: flex;
 	flex-direction: column;
-	gap: 1rem;
-	padding: 0.5rem 0;
+	gap: 0.75rem;
 }
 
 .photo-option-btn {
@@ -32,13 +134,13 @@
 	align-items: center;
 	justify-content: center;
 	gap: 0.75rem;
-	background: white;
-	color: var(--text);
+	background: #ffffff;
+	color: #1f2937;
 }
 
 .photo-option-btn:hover {
 	background: #f9fafb;
-	border-color: var(--accent);
+	border-color: var(--accent, #4f46e5);
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -68,7 +170,8 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	z-index: 1002;
+	z-index: 10002;
+	padding: 20px;
 }
 
 .camera-modal-container {
@@ -170,3 +273,24 @@
 	display: none;
 }
 
+/* Responsive adjustments */
+@media (max-width: 480px) {
+	#photoOptionsModal {
+		padding: 10px;
+	}
+	
+	.photo-modal-content {
+		max-width: 100%;
+		width: calc(100% - 20px);
+	}
+	
+	.modal-header,
+	.modal-body {
+		padding: 1rem 1.25rem;
+	}
+	
+	.camera-modal-container {
+		max-width: 100%;
+		width: calc(100% - 20px);
+	}
+}

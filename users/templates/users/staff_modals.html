@@ -1,0 +1,76 @@
+{% load static %}
+{% csrf_token %}
+
+<!-- Staff Add/Edit Modal -->
+<div id="staffModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="staffModalTitle">Add Staff Member</h2>
+            <button type="button" class="modal-close" onclick="closeModal('staffModal')">&times;</button>
+        </div>
+        <form id="staffForm">
+            {% csrf_token %}
+            <input type="hidden" id="staffId" name="staff_id">
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label for="staffUsername">Username <span class="required-indicator">*</span></label>
+                        <input type="text" id="staffUsername" name="username" required>
+                        <small id="usernameHelpText" style="display: none;">Username cannot be changed</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="staffName">Full Name</label>
+                        <input type="text" id="staffName" name="name">
+                    </div>
+                    <div class="form-group">
+                        <label for="staffEmail">Email <span class="required-indicator">*</span></label>
+                        <input type="email" id="staffEmail" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="staffPhone">Phone Number</label>
+                        <input type="text" id="staffPhone" name="phone_number">
+                    </div>
+                    <div class="form-group">
+                        <label for="staffRole">Role <span class="required-indicator">*</span></label>
+                        <select id="staffRole" name="role" required>
+                            <option value="">Select Role</option>
+                            <option value="Staff">Staff</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="passwordGroup">
+                        <label for="staffPassword">Password <span class="required-indicator">*</span></label>
+                        <input type="password" id="staffPassword" name="password">
+                        <div class="password-strength">
+                            <div class="password-strength-bar"></div>
+                        </div>
+                    </div>
+                    <div class="form-group" id="passwordConfirmGroup">
+                        <label for="staffPasswordConfirm">Confirm Password <span class="required-indicator">*</span></label>
+                        <input type="password" id="staffPasswordConfirm" name="password_confirm">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModal('staffModal')">Cancel</button>
+                <button type="submit" class="btn-primary">Save Staff</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content modal-small">
+        <div class="modal-header">
+            <h2>Confirm Delete</h2>
+            <button type="button" class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="deleteMessage"></p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="closeModal('deleteModal')">Cancel</button>
+            <button type="button" class="btn-danger" id="confirmDeleteBtn">Delete</button>
+        </div>
+    </div>
+</div>
