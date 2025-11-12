@@ -1,6 +1,10 @@
 // ===== CHECK-IN MODAL FUNCTIONALITY =====
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Ensure showNotification is available
+    if (typeof window.showNotification !== 'function') {
+        console.error('[CHECK-IN MODAL] showNotification not found! Make sure global notifications.js is loaded.');
+    }
     setupCheckInModal();
 });
 
@@ -172,7 +176,12 @@ function setupCheckInModal() {
         e.preventDefault();
         
         if (!selectedMemberId.value) {
-            alert('Please select a member');
+            // Check if showNotification exists
+            if (typeof window.showNotification === 'function') {
+                window.showNotification('Please select a member first', 'error');
+            } else {
+                alert('Please select a member first');
+            }
             return;
         }
         
@@ -199,28 +208,61 @@ function setupCheckInModal() {
         .then(data => {
             console.log('Response data:', data);
             if (data.success) {
-                // Success - update dashboard without page reload
-                console.log('Check-in successful, updating dashboard...');
+                // Success - show notification and close modal immediately
+                console.log('Check-in successful, closing modal...');
                 
-                // Update stats dynamically
-                updateDashboardStats();
+                // Check if showNotification exists
+                if (typeof window.showNotification === 'function') {
+                    window.showNotification('Check-in logged successfully!', 'success');
+                    console.log('[CHECK-IN] Success notification called');
+                } else {
+                    console.error('[CHECK-IN] showNotification function not available!');
+                    alert('Check-in logged successfully!'); // Fallback
+                }
                 
-                // Close modal after brief delay
+                // Immediately add check-in to recent check-ins list
+                addCheckInToRecentList(selectedMember);
+                
+                // Update member check-ins count
+                updateMemberCheckInsCount();
+                
+                // Close modal immediately
+                closeModalHandler();
+                
+                // Reload page after delay to refresh all data
                 setTimeout(() => {
-                    closeModalHandler();
-                }, 500);
+                    window.location.reload();
+                }, 2000);
             } else {
                 console.error('Check-in failed:', data.error);
-                alert(data.error || 'Failed to log check-in');
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Log Check-in';
+                
+                // Check if showNotification exists
+                if (typeof window.showNotification === 'function') {
+                    window.showNotification(data.error || 'Failed to log check-in', 'error');
+                    console.log('[CHECK-IN] Error notification called');
+                } else {
+                    console.error('[CHECK-IN] showNotification function not available!');
+                    alert(data.error || 'Failed to log check-in'); // Fallback
+                }
             }
         })
         .catch(error => {
             console.error('Error logging check-in:', error);
-            alert('An error occurred: ' + error.message);
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Log Check-in';
+            
+            // Check if showNotification exists
+            if (typeof window.showNotification === 'function') {
+                window.showNotification('An error occurred: ' + error.message, 'error');
+            } else {
+                console.error('[CHECK-IN] showNotification function not available!');
+                alert('An error occurred: ' + error.message); // Fallback
+            }
+        })
+        .finally(() => {
+            // Reset button state only if not successful
+            if (!document.querySelector('.notification-success')) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Log Check-in';
+            }
         });
     });
     
@@ -232,7 +274,7 @@ function setupCheckInModal() {
         const gender = document.getElementById('guestGender').value;
         
         if (!name || !gender) {
-            alert('Please fill in all fields');
+            showNotification('Please fill in all fields', 'error');
             return;
         }
         
@@ -281,6 +323,81 @@ function setupCheckInModal() {
         return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
     }
     
+    // Add check-in to recent list immediately
+    function addCheckInToRecentList(member) {
+        const activityList = document.querySelector('.activity-list');
+        const emptyState = document.querySelector('.empty-state');
+        
+        // Hide empty state if it's showing
+        if (emptyState) {
+            emptyState.style.display = 'none';
+        }
+        
+        // Generate avatar HTML
+        let avatarHtml;
+        if (member.photo) {
+            avatarHtml = `<img src="${member.photo}" alt="${member.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        } else {
+            // Generate initials
+            const names = member.name.split(' ');
+            let initials;
+            if (names.length > 1) {
+                initials = names[0][0].toUpperCase() + names[1][0].toUpperCase();
+            } else {
+                initials = member.name.slice(0, 2).toUpperCase();
+            }
+            avatarHtml = initials;
+        }
+        
+        // Create new check-in item
+        const newItem = document.createElement('div');
+        newItem.className = 'activity-item';
+        newItem.style.cssText = 'border-bottom: 1px solid #e0e0e0; padding-bottom: 0.75rem; margin-bottom: 0.75rem; animation: slideIn 0.3s ease;';
+        newItem.innerHTML = `
+            <div class="activity-avatar">${avatarHtml}</div>
+            <div class="activity-details">
+                <div class="activity-name">${member.name}</div>
+                <div class="activity-time">Just now</div>
+            </div>
+        `;
+        
+        // Add to top of list
+        if (activityList) {
+            activityList.style.display = 'block';
+            activityList.insertBefore(newItem, activityList.firstChild);
+        } else {
+            // Create activity list if it doesn't exist
+            const activityCard = document.querySelector('.activity-card');
+            const newList = document.createElement('div');
+            newList.className = 'activity-list';
+            newList.style.display = 'block';
+            newList.appendChild(newItem);
+            activityCard.appendChild(newList);
+        }
+        
+        // Update badge count
+        const badge = document.querySelector('.card-badge');
+        if (badge) {
+            const currentCount = parseInt(badge.textContent) || 0;
+            badge.textContent = currentCount + 1;
+        }
+    }
+    
+    // Update member check-ins count
+    function updateMemberCheckInsCount() {
+        const memberCheckInsEl = document.querySelectorAll('.stat-card')[1]?.querySelector('.stat-value');
+        if (memberCheckInsEl) {
+            const currentCount = parseInt(memberCheckInsEl.textContent) || 0;
+            memberCheckInsEl.textContent = currentCount + 1;
+            
+            // Add pulse animation
+            memberCheckInsEl.parentElement.parentElement.style.animation = 'pulse 0.5s ease';
+            setTimeout(() => {
+                memberCheckInsEl.parentElement.parentElement.style.animation = '';
+            }, 500);
+        }
+    }
+    
     // Update dashboard stats dynamically
     function updateDashboardStats() {
         console.log('Fetching updated dashboard stats...');
@@ -305,7 +422,7 @@ function setupCheckInModal() {
                 }
                 
                 if (monthlyCheckinsEl) {
-                    animateValue(monthlyCheckinsEl, parseInt(monthlyCheckinsEl.textContent), data.monthly_check_ins, 500);
+                    animateValue(monthlyCheckinsEl, parseInt(monthlyCheckinsEl.textContent), data.member_check_ins, 500);
                 }
                 
                 if (recentCountEl) {
@@ -360,29 +477,32 @@ function setupCheckInModal() {
         
         // Build HTML for check-ins
         const html = checkIns.map(checkIn => {
-            // Generate initials
-            const names = checkIn.member_name.split(' ');
-            let initials;
-            if (names.length > 1) {
-                initials = names[0][0].toUpperCase() + names[1][0].toUpperCase();
+            // Generate avatar HTML - either photo or initials
+            let avatarHtml;
+            if (checkIn.photo) {
+                avatarHtml = `<img src="${checkIn.photo}" alt="${checkIn.member_name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
             } else {
-                initials = checkIn.member_name.slice(0, 2).toUpperCase();
+                // Generate initials
+                const names = checkIn.member_name.split(' ');
+                let initials;
+                if (names.length > 1) {
+                    initials = names[0][0].toUpperCase() + names[1][0].toUpperCase();
+                } else {
+                    initials = checkIn.member_name.slice(0, 2).toUpperCase();
+                }
+                avatarHtml = initials;
             }
             
-            const statusClass = checkIn.is_checked_out ? 'status-out' : 'status-in';
-            const statusText = checkIn.is_checked_out ? 'Checked Out' : 'In Gym';
+            // Show (Walk-in) label for walk-in guests
+            const walkInLabel = checkIn.type === 'walkin' ? ' <span style="color: #666; font-size: 0.85em;">(Walk-in)</span>' : '';
             
             return `
-                <div class="activity-item">
-                    <div class="activity-avatar">${initials}</div>
+                <div class="activity-item" style="border-bottom: 1px solid #e0e0e0; padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+                    <div class="activity-avatar">${avatarHtml}</div>
                     <div class="activity-details">
-                        <div class="activity-name">${checkIn.member_name}</div>
-                        <div class="activity-time">
-                            ${checkIn.time_ago}
-                            ${checkIn.duration ? `• Duration: ${checkIn.duration}` : ''}
-                        </div>
+                        <div class="activity-name">${checkIn.member_name}${walkInLabel}</div>
+                        <div class="activity-time">${checkIn.time_ago}</div>
                     </div>
-                    <span class="activity-status ${statusClass}">${statusText}</span>
                 </div>
             `;
         }).join('');

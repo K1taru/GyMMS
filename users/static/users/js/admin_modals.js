@@ -55,12 +55,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Password validation (only if adding new staff or changing password)
             if (password && password !== confirmPassword) {
-                alert('Passwords do not match!');
+                showNotification('Passwords do not match!', 'error');
                 return;
             }
 
             if (!staffId && password.length < 6) {
-                alert('Password must be at least 6 characters long');
+                showNotification('Password must be at least 6 characters long', 'error');
                 return;
             }
 
@@ -77,16 +77,16 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message);
+                    showNotification(data.message, 'success');
                     closeModal('staffModal');
                     location.reload();
                 } else {
-                    alert(data.message || 'Error processing request');
+                    showNotification(data.message || 'Error processing request', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred. Please try again.');
+                showNotification('An error occurred. Please try again.', 'error');
             });
         });
     }
@@ -124,16 +124,16 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message);
+                    showNotification(data.message, 'success');
                     closeModal('pricingModal');
                     location.reload();
                 } else {
-                    alert(data.message || 'Error processing request');
+                    showNotification(data.message || 'Error processing request', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred. Please try again.');
+                showNotification('An error occurred. Please try again.', 'error');
             });
         });
     }
@@ -189,12 +189,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     openModal('staffModal');
                 } else {
-                    alert(data.message || 'Error loading staff data');
+                    showNotification(data.message || 'Error loading staff data', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Failed to load staff data');
+                showNotification('Failed to load staff data', 'error');
             });
     };
 
@@ -213,15 +213,15 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message);
+                    showNotification(data.message, 'success');
                     location.reload();
                 } else {
-                    alert(data.message || 'Error deleting staff');
+                    showNotification(data.message || 'Error deleting staff', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Failed to delete staff');
+                showNotification('Failed to delete staff', 'error');
             });
         };
         
@@ -240,12 +240,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('pricingDuration').value = data.plan.duration_days;
                     openModal('pricingModal');
                 } else {
-                    alert(data.message || 'Error loading pricing data');
+                    showNotification(data.message || 'Error loading pricing data', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Failed to load pricing data');
+                showNotification('Failed to load pricing data', 'error');
             });
     };
 
@@ -264,15 +264,15 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message);
+                    showNotification(data.message, 'success');
                     location.reload();
                 } else {
-                    alert(data.message || 'Error deleting pricing');
+                    showNotification(data.message || 'Error deleting pricing', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Failed to delete pricing');
+                showNotification('Failed to delete pricing', 'error');
             });
         };
         

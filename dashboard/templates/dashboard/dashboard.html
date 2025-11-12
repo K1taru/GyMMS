@@ -7,7 +7,7 @@
 	<meta name="description" content="GyMMS Dashboard - Manage your gym operations">
 	<title>Dashboard | GyMMS</title>
 	<link rel="stylesheet" href="{% static 'core/css/index.css' %}">
-	<link rel="stylesheet" href="{% static 'dashboard/css/dashboard.css' %}?v=12">
+	<link rel="stylesheet" href="{% static 'dashboard/css/dashboard.css' %}?v=13">
 </head>
 <body>
 	{% include 'core/navbar.html' %}
@@ -38,19 +38,19 @@
 							<div>
 								<a href="{% url 'metrics:metrics' %}" class="stat-label">Daily Walk-ins</a>
 								<div class="stat-value">{{ daily_walk_ins }}</div>
-								<div class="stat-trend">Today's check-ins</div>
+								<div class="stat-trend">Guest payments today</div>
 							</div>
 							<div class="stat-icon">👟</div>
 						</div>
 					</div>
 
-					<!-- Monthly Check-ins -->
+					<!-- Member Check-ins -->
 					<div class="stat-card members">
 						<div class="stat-header">
 							<div>
-								<a href="{% url 'metrics:metrics' %}" class="stat-label">Monthly Check-ins</a>
-								<div class="stat-value">{{ monthly_check_ins }}</div>
-								<div class="stat-trend">Total visits this month</div>
+								<a href="{% url 'metrics:metrics' %}" class="stat-label">Member Check-ins</a>
+								<div class="stat-value">{{ member_check_ins }}</div>
+								<div class="stat-trend">Members checked in today</div>
 							</div>
 							<div class="stat-icon">📅</div>
 						</div>
@@ -108,32 +108,31 @@
 					{% if recent_check_ins %}
 						<div class="activity-list">
 							{% for check_in in recent_check_ins %}
-							<div class="activity-item">
+							<div class="activity-item" style="border-bottom: 1px solid #e0e0e0; padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
 								<div class="activity-avatar">
-									{% with names=check_in.member.name.split %}
-										{% if names|length > 1 %}
-											{{ names.0|first|upper }}{{ names.1|first|upper }}
-										{% else %}
-											{{ check_in.member.name|slice:":2"|upper }}
-										{% endif %}
-									{% endwith %}
+									{% if check_in.photo %}
+										<img src="{{ check_in.photo }}" alt="{{ check_in.name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+									{% else %}
+										{% with names=check_in.name.split %}
+											{% if names|length > 1 %}
+												{{ names.0|first|upper }}{{ names.1|first|upper }}
+											{% else %}
+												{{ check_in.name|slice:":2"|upper }}
+											{% endif %}
+										{% endwith %}
+									{% endif %}
 								</div>
 								<div class="activity-details">
 									<div class="activity-name">
-										{{ check_in.member.name }}
-									</div>
-									<div class="activity-time">
-										{{ check_in.check_in_time|timesince }} ago
-										{% if check_in.check_out_time %}
-											• Duration: {{ check_in.duration }}
+										{{ check_in.name }}
+										{% if check_in.type == 'walkin' %}
+											<span style="color: #666; font-size: 0.85em;">(Walk-in)</span>
 										{% endif %}
 									</div>
+									<div class="activity-time">
+										{{ check_in.time|date:"h:i A" }}
+									</div>
 								</div>
-								{% if check_in.check_out_time %}
-									<span class="activity-status status-out">Checked Out</span>
-								{% else %}
-									<span class="activity-status status-in">In Gym</span>
-								{% endif %}
 							</div>
 							{% endfor %}
 						</div>
@@ -161,35 +160,23 @@
 						<div class="mini-card-footer">Within 3 days</div>
 					</div>
 
-					<!-- New Members -->
-					<div class="mini-card members">
-						<a href="{% url 'memberships:memberships' %}?filter=newest" class="mini-card-header">New This Month</a>
-						<div class="mini-card-value">{{ new_members }}</div>
-						<div class="mini-card-footer">New member registrations</div>
-					</div>
-				</div>
-
-				<!-- Peak Hours Chart -->
-				<div class="chart-container">
-					<div class="card-header">
-						<a href="{% url 'metrics:metrics' %}" class="card-title">Peak Hours Today</a>
-					</div>
-					<div class="chart-bars">
-						{% for hour_data in peak_hours %}
-						<div class="chart-bar" style="height: {% if peak_hours %}{{ hour_data.percentage }}%{% else %}10%{% endif %};">
-							<span class="chart-bar-value">{{ hour_data.count }}</span>
-							<span class="chart-bar-label">{{ hour_data.hour }}:00</span>
-						</div>
-						{% endfor %}
-					</div>
+				<!-- New Members -->
+				<div class="mini-card members">
+					<a href="{% url 'memberships:memberships' %}?filter=newest" class="mini-card-header">New This Month</a>
+					<div class="mini-card-value">{{ new_members }}</div>
+					<div class="mini-card-footer">New member registrations</div>
 				</div>
 			</div>
+		</div>
 
-			{% include 'dashboard/checkin_modal.html' %}
+		<!-- Peak Hours Chart Component -->
+		{% include 'dashboard/peak_hours_chart.html' %}
+	</div>
+	{% include 'dashboard/checkin_modal.html' %}
 		</div>
 	</main>
 
 	<script defer src="{% static 'core/js/index.js' %}"></script>
-	<script defer src="{% static 'dashboard/js/dashboard.js' %}?v=3.0"></script>
+	<script defer src="{% static 'dashboard/js/dashboard.js' %}?v=3.2"></script>
 </body>
 </html>

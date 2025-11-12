@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let searchTimeout = null;
     let selectedMember = null;
+    let isSubmitting = false; // Track submission state to prevent double-clicks
 
     // ===== MEMBER SEARCH AUTOCOMPLETE =====
     
@@ -195,6 +196,12 @@ document.addEventListener('DOMContentLoaded', function() {
     paymentForm.addEventListener('submit', function(e) {
         e.preventDefault();
 
+        // Prevent multiple submissions
+        if (isSubmitting) {
+            console.log('Form submission already in progress, ignoring...');
+            return;
+        }
+
         // Validation
         if (!memberIdHidden.value) {
             showNotification('Please select a member', 'error');
@@ -223,6 +230,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        // Set submitting flag
+        isSubmitting = true;
+
         // Prepare form data
         const formData = new FormData(paymentForm);
         
@@ -245,7 +255,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-CSRFToken': getCsrfToken()
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            // Check if response is ok before parsing JSON
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.message || 'Payment processing failed');
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 showNotification(data.message, 'success');
@@ -269,22 +287,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 referenceRequired.style.display = 'none';
                 selectedMember = null;
                 
-                // Reload page to show updated payment in table
+                // Reload page after showing notification (give user time to see it)
                 setTimeout(() => {
                     window.location.reload();
-                }, 1500);
+                }, 2000);
             } else {
                 showNotification(data.message || 'Payment processing failed', 'error');
             }
         })
         .catch(error => {
             console.error('Error processing payment:', error);
-            showNotification('An error occurred while processing payment', 'error');
+            showNotification(error.message || 'An error occurred while processing payment', 'error');
         })
         .finally(() => {
-            // Restore button state
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnText;
+            // Restore button state only if not reloading
+            if (!document.querySelector('.notification-success')) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+                isSubmitting = false;
+            }
         });
     });
 
@@ -320,63 +341,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return document.querySelector('[name=csrfmiddlewaretoken]').value;
     }
 
-    // Show notification
-    function showNotification(message, type = 'info') {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.style.cssText = `
-            position: fixed;
-            top: 2rem;
-            right: 2rem;
-            background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            z-index: 10000;
-            font-weight: 600;
-            animation: slideIn 0.3s ease;
-        `;
-        notification.textContent = message;
-
-        // Add animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from {
-                    transform: translateX(400px);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-            }
-            @keyframes slideOut {
-                from {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-                to {
-                    transform: translateX(400px);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-
-        // Add to DOM
-        document.body.appendChild(notification);
-
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => {
-                notification.remove();
-            }, 300);
-        }, 3000);
-    }
+    // Note: showNotification is now loaded globally from /static/global/js/notifications.js
 
     // ===== INITIALIZE =====
     

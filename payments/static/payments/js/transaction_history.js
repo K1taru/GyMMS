@@ -247,7 +247,13 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('[APPLY FILTERS] Fetching from:', ajaxUrl);
         
         fetch(ajaxUrl)
-            .then(response => response.json())
+            .then(response => {
+                console.log('[APPLY FILTERS] Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 console.log('[APPLY FILTERS] Response:', data);
                 updateTable(data.transactions);
@@ -265,7 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error fetching transactions:', error);
-                showNotification('Failed to load transactions', 'error');
+                showNotification('Failed to load transactions. Please try again.', 'error');
                 hideLoading();
             });
     }
@@ -290,7 +296,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         let html = '';
         transactions.forEach(transaction => {
-            const transactionIdShort = transaction.id.substring(0, 8);
             const planInfo = transaction.stored_plan_label !== 'N/A' && transaction.stored_duration_days > 0
                 ? `${transaction.stored_plan_label} <small>(${transaction.stored_duration_days} days)</small>`
                 : transaction.stored_plan_label;
@@ -298,8 +303,8 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `
                 <tr>
                     <td>
-                        <span class="transaction-id" title="${transaction.id}" style="cursor: pointer;">
-                            ${transactionIdShort}...
+                        <span class="transaction-id" title="${transaction.id}">
+                            ${transaction.id}
                         </span>
                     </td>
                     <td>${transaction.payment_date}</td>
@@ -338,10 +343,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update pagination info
         const paginationInfo = document.querySelector('.pagination-info');
         paginationInfo.textContent = `Showing ${pagination.start_index} to ${pagination.end_index} of ${pagination.total_count} transactions`;
-        
-        // Update page display
-        const pageDisplay = document.querySelector('.page-input-group span:last-child');
-        pageDisplay.textContent = `of ${pagination.total_pages}`;
         
         // Update button states
         prevPageBtn.disabled = !pagination.has_previous;
@@ -465,67 +466,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===== NOTIFICATION FUNCTION =====
-
-    function showNotification(message, type = 'info') {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.style.cssText = `
-            position: fixed;
-            top: 2rem;
-            right: 2rem;
-            background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            z-index: 10000;
-            font-weight: 600;
-            animation: slideIn 0.3s ease;
-            max-width: 400px;
-        `;
-        notification.textContent = message;
-
-        // Add animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from {
-                    transform: translateX(400px);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-            }
-            @keyframes slideOut {
-                from {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-                to {
-                    transform: translateX(400px);
-                    opacity: 0;
-                }
-            }
-        `;
-        if (!document.querySelector('style[data-notification]')) {
-            style.setAttribute('data-notification', 'true');
-            document.head.appendChild(style);
-        }
-
-        // Add to DOM
-        document.body.appendChild(notification);
-
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => {
-                notification.remove();
-            }, 300);
-        }, 3000);
-    }
+    // Note: showNotification is now loaded globally from /static/global/js/notifications.js
 
     // ===== INITIALIZE =====
 
