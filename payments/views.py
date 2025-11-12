@@ -140,12 +140,26 @@ def process_payment(request):
             
             messages.success(request, success_message)
             
+            # Prepare payment data for immediate display
+            payment_data = {
+                'id': str(payment.id),
+                'payment_date': payment.payment_date.strftime('%b %d, %Y %H:%M'),
+                'stored_member_id': payment.stored_member_id,
+                'stored_member_name': payment.stored_member_name,
+                'amount': str(payment.amount),
+                'payment_method': payment.payment_method,
+                'reference_number': payment.reference_number or '—',
+                'status': payment.status,
+                'processed_by': request.user.username
+            }
+            
             return JsonResponse({
                 'success': True,
                 'message': success_message,
                 'payment_id': str(payment.id),
                 'new_end_date': new_end_date,
-                'is_walkin': is_walkin
+                'is_walkin': is_walkin,
+                'payment': payment_data
             })
             
         except Member.DoesNotExist:

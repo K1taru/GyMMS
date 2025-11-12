@@ -23,7 +23,7 @@
 ## 2. Global Notification System
 
 ### New Files:
-- `static/global/js/notifications.js` - Global notification banner system
+- `core/static/core/js/notifications.js` - Global notification banner system
 
 ### Modified Files:
 - `core/templates/core/navbar.html` - Added global notifications script

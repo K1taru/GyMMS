@@ -466,7 +466,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===== NOTIFICATION FUNCTION =====
-    // Note: showNotification is now loaded globally from /static/global/js/notifications.js
+    // Note: showNotification is now loaded globally from core/static/core/js/notifications.js
 
     // ===== INITIALIZE =====
 
