@@ -27,6 +27,8 @@ services:
       - .env
     depends_on:
       - db
+    volumes:  # Added volume for media files to work. Production uses development media/ files for now.
+      - ./media:/app/media
     networks:
       - gymms_network
     command: >
