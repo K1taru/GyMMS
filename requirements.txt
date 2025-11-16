@@ -13,3 +13,8 @@ psycopg2-binary
 
 django-environ>=0.11.2
 pillow>=9.0
+
+# Nginx dep
+gunicorn>=20.1
+
+

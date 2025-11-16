@@ -1,24 +1,22 @@
-# Django + PostgreSQL (Docker)
-
-# Use an official Python image
+# Base image
 FROM python:3.11-slim
 
-# Disable .pyc and enable unbuffered logs
+# Environment
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+
+# Install dependencies
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# Install dependencies
-COPY requirements.txt .
+# Copy Python requirements and install
+COPY requirements.txt . 
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
+# Copy Django project
 COPY . .
 
-# Expose Django port
+# Expose Gunicorn port
 EXPOSE 8000
-
-# Run Django server (for development)
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

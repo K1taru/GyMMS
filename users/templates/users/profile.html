@@ -1,0 +1,173 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - GyMMS</title>
+    
+    <!-- Core Styles -->
+    <link rel="stylesheet" href="{% static 'core/css/index.css' %}">
+    <link rel="stylesheet" href="{% static 'users/css/profile.css' %}">
+</head>
+<body>
+    <!-- Include Navbar -->
+    {% include 'core/navbar.html' %}
+
+    <div class="profile-container">
+        <div class="profile-header">
+            <h1>My Profile</h1>
+            <p class="text-muted">Manage your account information</p>
+        </div>
+
+        <div class="profile-card">
+            <button type="button" class="btn btn-edit-profile" id="editProfileBtn" title="Edit Profile">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
+                Edit
+            </button>
+            <form id="profileForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <!-- Profile Image Section -->
+                <div class="profile-image-section">
+                    <div class="profile-image-wrapper center-image">
+                        <img id="profileImagePreview" 
+                             src="{% if user.profile_image %}{{ user.profile_image.url }}{% else %}https://ui-avatars.com/api/?name={{ user.username }}&size=150&background=22c55e&color=ffffff&bold=true{% endif %}" 
+                             alt="Profile Picture" 
+                             class="profile-image">
+                        <button type="button" class="change-photo-btn" id="changePhotoBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                <circle cx="12" cy="13" r="4"></circle>
+                            </svg>
+                            Change Photo
+                        </button>
+                    </div>
+                    <input type="file" id="profileImageInput" name="profile_image" accept="image/*" style="display: none;">
+                    <input type="file" id="profileCameraInput" accept="image/*" capture="user" style="display: none;">
+                </div>
+
+                <!-- Form Fields -->
+                <div class="form-grid">
+                    <!-- Username (Read-only) -->
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" value="{{ user.username }}" readonly class="readonly-field">
+                        <small class="help-text">Username cannot be changed</small>
+                    </div>
+
+                    <!-- Name -->
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" name="name" value="{{ user.name|default:'' }}" placeholder="Enter your full name" disabled>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" value="{{ user.email }}" placeholder="your.email@example.com" required disabled>
+                    </div>
+
+                    <!-- Phone Number -->
+                    <div class="form-group">
+                        <label for="phone_number">Phone Number</label>
+                        <input type="tel" id="phone_number" name="phone_number" value="{{ user.phone_number|default:'' }}" placeholder="+1 234 567 8900" disabled>
+                    </div>
+
+                    <!-- New Password -->
+                    <div class="form-group">
+                        <label for="password">New Password</label>
+                        <input type="password" id="password" name="password" placeholder="Leave blank to keep current password" disabled>
+                        <small class="help-text">Minimum 6 characters</small>
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div class="form-group">
+                        <label for="password_confirm">Confirm Password</label>
+                        <input type="password" id="password_confirm" name="password_confirm" placeholder="Confirm new password" disabled>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="form-actions" style="justify-content: flex-end; gap: 0.75rem; display: none;" id="editActions">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="saveBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Account Information -->
+        <div class="account-info">
+            <h3>Account Information</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Role:</span>
+                    <span class="info-value">{{ user.role }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Member Since:</span>
+                    <span class="info-value">{{ user.date_joined|date:"F d, Y" }}</span>
+                </div>
+                {% if user.last_password_change %}
+                <div class="info-item">
+                    <span class="info-label">Last Password Change:</span>
+                    <span class="info-value">{{ user.last_password_change|date:"F d, Y" }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="confirm-modal">
+        <div class="confirm-modal-content">
+            <div class="confirm-modal-header">
+                <h2>Confirm Changes</h2>
+                <button class="confirm-modal-close" id="closeConfirmModal">&times;</button>
+            </div>
+            <div class="confirm-modal-body-wrapper">
+                <div class="confirm-modal-body">
+                    <div class="confirm-icon-container">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                    </div>
+                    <h3>Confirm Profile Changes</h3>
+                    <p class="confirm-modal-message">Are you sure you want to save these changes to your profile?</p>
+                </div>
+            </div>
+            <div class="confirm-modal-footer">
+                <button type="button" class="confirm-modal-btn-secondary" id="cancelConfirm">Cancel</button>
+                <button type="button" class="confirm-modal-btn-primary" id="confirmSave">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Photo Modal -->
+    {% include 'memberships/photo_modal.html' %}
+    
+    <!-- Scripts -->
+    <script defer src="{% static 'core/js/notifications.js' %}"></script>
+	<script defer src="{% static 'core/js/index.js' %}"></script>
+    <script defer src="{% static 'users/js/profile.js' %}"></script>
+</body>
+</html>

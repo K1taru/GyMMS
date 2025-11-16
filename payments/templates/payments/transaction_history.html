@@ -6,7 +6,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Transaction History | GyMMS</title>
 	<link rel="stylesheet" href="{% static 'core/css/index.css' %}">
-	<link rel="stylesheet" href="{% static 'payments/css/transaction_history.css' %}">
+	<link rel="stylesheet" href="{% static 'payments/css/transaction_history.css' %}?v=6.0">
 </head>
 <body>
 	{% include 'core/navbar.html' %}
@@ -230,7 +230,7 @@
 							<tr>
 								<td>
 									<span class="transaction-id" title="{{ transaction.id }}">
-										{{ transaction.id|slice:":8" }}...
+										{{ transaction.id }}
 									</span>
 								</td>
 								<td>{{ transaction.payment_date|date:"M d, Y H:i" }}</td>
@@ -278,33 +278,29 @@
 							id="prevPage" 
 							class="pagination-btn"
 							{% if not has_previous %}disabled{% endif %}
+							title="Previous page"
 						>
-							<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-								<polyline points="15 18 9 12 15 6"/>
-							</svg>
+							←
 						</button>
 
-						<div class="page-input-group">
-							<span>Page</span>
-							<input 
-								type="number" 
-								id="pageInput" 
-								value="{{ current_page }}" 
-								min="1" 
-								max="{{ total_pages }}"
-							>
-							<span>of {{ total_pages }}</span>
-						</div>
+						<input 
+							type="number" 
+							id="pageInput" 
+							class="page-number-input"
+							value="{{ current_page }}" 
+							min="1" 
+							max="{{ total_pages }}"
+							title="Current page"
+						>
 
 						<button 
 							type="button" 
 							id="nextPage" 
 							class="pagination-btn"
 							{% if not has_next %}disabled{% endif %}
+							title="Next page"
 						>
-							<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-								<polyline points="9 18 15 12 9 6"/>
-							</svg>
+							→
 						</button>
 					</div>
 
@@ -321,6 +317,6 @@
 		</div>
 	</main>
 
-	<script defer src="{% static 'payments/js/transaction_history.js' %}?v=2.0"></script>
+	<script defer src="{% static 'payments/js/transaction_history.js' %}?v=3.0"></script>
 </body>
 </html>

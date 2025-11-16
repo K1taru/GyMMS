@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Membership Pricing | GyMMS</title>
+    <link rel="stylesheet" href="{% static 'core/css/index.css' %}">
+    <link rel="stylesheet" href="{% static 'users/css/membership_pricing.css' %}">
+    <link rel="stylesheet" href="{% static 'users/css/admin_modals.css' %}">
+</head>
+<body>
+    {% include 'core/navbar.html' %}
+    <main class="container" style="margin-top: 0.5rem;">
+        <div class="admin-container">
+            <div class="admin-header">
+                <div>
+                    <h1>Membership Pricing</h1>
+                    <p class="subtitle">Manage membership pricing plans</p>
+                </div>
+            </div>
+            <div class="section-header">
+                <h2>Membership Pricing</h2>
+                <button class="btn-primary" id="addPricingBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add Pricing Plan
+                </button>
+            </div>
+            <div class="pricing-grid">
+                {% for plan in pricing_plans %}
+                <div class="pricing-card" data-plan-id="{{ plan.id }}">
+                    <div class="plan-header">
+                        <h3>{{ plan.duration_label }}</h3>
+                        <div class="plan-price">₱{{ plan.price }}</div>
+                        <div class="plan-duration">{{ plan.duration_days }} days</div>
+                    </div>
+                    <div class="plan-actions">
+                        <button class="btn-secondary btn-sm">Edit</button>
+                        <button class="btn-danger btn-sm">Delete</button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state">No pricing plans found</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% include 'users/pricing_modals.html' %}
+    </main>
+    <script defer src="{% static 'core/js/notifications.js' %}"></script>
+    <script defer src="{% static 'users/js/membership_pricing.js' %}"></script>
+</body>
+</html>

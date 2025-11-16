@@ -23,30 +23,35 @@ def dashboard(request):
     # Get today's check-ins
     today_check_ins = GymCheckIn.objects.filter(date=today)
     
-    # Daily walk-ins (total check-ins today, not unique members)
-    daily_walk_ins = today_check_ins.count()
+    # Calculate start and end of today in Manila timezone
+    manila_today_start = datetime.combine(today, datetime.min.time()).replace(tzinfo=manila_tz)
+    manila_today_end = datetime.combine(today, datetime.max.time()).replace(tzinfo=manila_tz)
     
-    # Total check-ins today
-    total_check_ins_today = today_check_ins.count()
+    # Daily walk-ins (guest payments only - GYMMSGUEST)
+    daily_walk_ins = Payment.objects.filter(
+        payment_date__gte=manila_today_start,
+        payment_date__lte=manila_today_end,
+        stored_member_id='GYMMSGUEST',
+        status='Completed'
+    ).count()
+    
+    # Member check-ins (unique registered members who checked in today)
+    member_check_ins = today_check_ins.values('member').distinct().count()
     
     # Active members currently in gym (checked in but not checked out)
     active_in_gym = today_check_ins.filter(check_out_time__isnull=True).count()
     
     # Monthly statistics
     month_start = today.replace(day=1)
-    # Monthly check-ins (total check-ins this month, not unique members)
-    monthly_check_ins = GymCheckIn.objects.filter(
-        date__gte=month_start,
-        date__lte=today
-    ).count()
     
     # Total active members
-    total_active_members = Member.objects.filter(is_active=True).count()
+    total_active_members = Member.objects.filter(is_active=True, is_deleted=False).count()
     
-    # New members this month
+    # New members this month (exclude deleted members)
     new_members_this_month = Member.objects.filter(
         date_created__gte=month_start,
-        date_created__lte=now
+        date_created__lte=now,
+        is_deleted=False
     ).count()
     
     # Revenue statistics
@@ -89,34 +94,100 @@ def dashboard(request):
     monthly_revenue = monthly_payments.aggregate(total=Sum('amount'))['total'] or 0
     print(f"[DASHBOARD REVENUE] Monthly total revenue: {monthly_revenue}")
     
-    # Recent check-ins (last 10, ordered by most recent)
-    recent_check_ins = today_check_ins.select_related('member').order_by('-check_in_time')[:10]
+    # Recent check-ins - combine member check-ins and walk-in payments
+    # Get member check-ins (ALL, no limit)
+    member_checkins = list(today_check_ins.select_related('member').order_by('-check_in_time'))
     
-    # Membership expiring soon (within 3 days)
+    # Get walk-in payments from today (ALL, no limit)
+    walkin_payments = Payment.objects.filter(
+        payment_date__gte=manila_today_start,
+        payment_date__lte=manila_today_end,
+        stored_member_id='GYMMSGUEST',
+        status='Completed'
+    ).order_by('-payment_date')
+    
+    # Combine both into a unified list with consistent structure
+    combined_checkins = []
+    
+    # Add member check-ins
+    for checkin in member_checkins:
+        photo_url = checkin.member.photo.url if checkin.member.photo else None
+        combined_checkins.append({
+            'type': 'member',
+            'name': checkin.member.name,
+            'photo': photo_url,
+            'time': checkin.check_in_time,
+            'check_out_time': checkin.check_out_time,
+            'duration': None  # We'll calculate this in template
+        })
+    
+    # Add walk-in payments
+    for payment in walkin_payments:
+        combined_checkins.append({
+            'type': 'walkin',
+            'name': payment.stored_member_name,
+            'photo': None,  # Walk-ins don't have photos
+            'time': payment.payment_date,
+            'check_out_time': None,
+            'duration': None
+        })
+    
+    # Sort by time (most recent first) - NO LIMIT
+    combined_checkins.sort(key=lambda x: x['time'], reverse=True)
+    recent_check_ins = combined_checkins
+    
+    # Membership expiring soon (within 3 days, exclude deleted members)
     expiring_soon = Member.objects.filter(
         is_active=True,
+        is_deleted=False,
         end_date__gte=today,
         end_date__lte=today + timedelta(days=3)
     ).count()
     
-    # Peak hours data (check-ins by hour today)
-    peak_hours = today_check_ins.extra(
-        select={'hour': 'EXTRACT(hour FROM check_in_time)'}
-    ).values('hour').annotate(count=Count('id')).order_by('hour')
+    # Peak hours data (check-ins by hour today) - Use Manila timezone for hour extraction
+    # Include both member check-ins and walk-in payments
+    peak_hours_raw = today_check_ins.select_related('member')
     
-    # Calculate percentages for chart visualization
-    max_count = max([h['count'] for h in peak_hours], default=1)
+    # Get walk-in payments from today
+    walkin_payments_for_peak = Payment.objects.filter(
+        payment_date__gte=manila_today_start,
+        payment_date__lte=manila_today_end,
+        stored_member_id='GYMMSGUEST',
+        status='Completed'
+    )
+    
+    # Convert to Manila timezone and group by hour
+    from collections import defaultdict
+    hour_counts = defaultdict(int)
+    
+    # Add member check-ins
+    for checkin in peak_hours_raw:
+        # Convert check_in_time to Manila timezone
+        manila_checkin_time = checkin.check_in_time.astimezone(manila_tz)
+        hour = manila_checkin_time.hour
+        hour_counts[hour] += 1
+    
+    # Add walk-in payments
+    for payment in walkin_payments_for_peak:
+        # Convert payment_date to Manila timezone
+        manila_payment_time = payment.payment_date.astimezone(manila_tz)
+        hour = manila_payment_time.hour
+        hour_counts[hour] += 1
+    
+    # Convert to list format
     peak_hours_data = []
-    for h in peak_hours:
+    for hour, count in hour_counts.items():
         peak_hours_data.append({
-            'hour': int(h['hour']),
-            'count': h['count'],
-            'percentage': (h['count'] / max_count * 100) if max_count > 0 else 10
+            'hour': hour,
+            'count': count
         })
+    
+    # Sort by hour
+    peak_hours_data.sort(key=lambda x: x['hour'])
     
     context = {
         'daily_walk_ins': daily_walk_ins,
-        'monthly_check_ins': monthly_check_ins,
+        'member_check_ins': member_check_ins,
         'active_in_gym': active_in_gym,
         'today_revenue': today_revenue,
         'monthly_revenue': monthly_revenue,
@@ -124,7 +195,7 @@ def dashboard(request):
         'expiring_soon': expiring_soon,
         'new_members': new_members_this_month,
         'recent_check_ins': recent_check_ins,
-        'peak_hours': peak_hours_data,
+        'peak_hours': json.dumps(peak_hours_data),  # JSON for JavaScript
         'current_time': now,
     }
     
@@ -204,20 +275,51 @@ def log_checkin(request):
         
         if not member.is_active:
             print(f"[CHECK-IN] Error: Member {member_id} is inactive")
-            return JsonResponse({'success': False, 'error': 'Member account is inactive. Please contact administrator.'})
+            return JsonResponse({'success': False, 'error': 'Member account is inactive. Please process payment first.'})
         
-        # Check if already checked in today
-        existing_checkin = GymCheckIn.objects.filter(
+        # Get Manila timezone for accurate time comparison
+        manila_tz = zoneinfo.ZoneInfo('Asia/Manila')
+        now = timezone.now()
+        manila_now = now.astimezone(manila_tz)
+        
+        # Check how many times member has checked in today (max 3)
+        today_checkins = GymCheckIn.objects.filter(
             member=member,
-            date=today,
-            check_out_time__isnull=True
-        ).first()
+            date=today
+        ).order_by('-check_in_time')
         
-        if existing_checkin:
-            print(f"[CHECK-IN] Error: Member {member_id} already checked in today")
-            return JsonResponse({'success': False, 'error': 'Member is already checked in'})
+        today_checkins_count = today_checkins.count()
         
-        # Create check-in record
+        if today_checkins_count >= 3:
+            print(f"[CHECK-IN] Error: Member {member_id} has reached maximum check-ins (3) for today")
+            return JsonResponse({'success': False, 'error': 'Maximum check-ins (3) reached for today.'})
+        
+        # Check if member has checked in recently (within last hour)
+        if today_checkins_count > 0:
+            last_checkin = today_checkins.first()
+            last_checkin_time = last_checkin.check_in_time.astimezone(manila_tz)
+            time_diff = manila_now - last_checkin_time
+            time_diff_minutes = int(time_diff.total_seconds() / 60)
+            
+            if time_diff_minutes < 60:
+                # Calculate remaining time
+                remaining_minutes = 60 - time_diff_minutes
+                hours = remaining_minutes // 60
+                minutes = remaining_minutes % 60
+                
+                if hours > 0:
+                    time_left = f"{hours} hour{'s' if hours != 1 else ''} and {minutes} minute{'s' if minutes != 1 else ''}"
+                else:
+                    time_left = f"{minutes} minute{'s' if minutes != 1 else ''}"
+                
+                print(f"[CHECK-IN] Error: Member {member_id} checked in {time_diff_minutes} minutes ago. Must wait {remaining_minutes} more minutes.")
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'Please wait {time_left} before checking in again.',
+                    'time_left_minutes': remaining_minutes
+                })
+        
+        # Create check-in record (member can check in up to 3 times)
         checkin = GymCheckIn.objects.create(member=member)
         print(f"[CHECK-IN] Success: Created check-in record ID {checkin.id} for {member.name} at {checkin.check_in_time}")
         
@@ -243,24 +345,66 @@ def get_stats(request):
     # Get today's check-ins
     today_check_ins = GymCheckIn.objects.filter(date=today)
     
-    # Daily walk-ins (total check-ins today)
-    daily_walk_ins = today_check_ins.count()
+    # Calculate today's date range in Manila timezone
+    manila_today_start = datetime.combine(today, datetime.min.time()).replace(tzinfo=manila_tz)
+    manila_today_end = datetime.combine(today, datetime.max.time()).replace(tzinfo=manila_tz)
     
-    # Monthly statistics
-    month_start = today.replace(day=1)
-    monthly_check_ins = GymCheckIn.objects.filter(
-        date__gte=month_start,
-        date__lte=today
+    # Daily walk-ins (guest payments only - GYMMSGUEST)
+    daily_walk_ins = Payment.objects.filter(
+        payment_date__gte=manila_today_start,
+        payment_date__lte=manila_today_end,
+        stored_member_id='GYMMSGUEST',
+        status='Completed'
     ).count()
     
-    # Recent check-ins (last 10, ordered by most recent)
-    recent_check_ins = today_check_ins.select_related('member').order_by('-check_in_time')[:10]
+    # Member check-ins (registered members who checked in today)
+    member_check_ins = today_check_ins.count()
+    
+    # Recent check-ins - combine member check-ins and walk-in payments
+    # Get member check-ins (ALL, no limit)
+    member_checkins = list(today_check_ins.select_related('member').order_by('-check_in_time'))
+    
+    # Get walk-in payments from today (ALL, no limit)
+    walkin_payments = Payment.objects.filter(
+        payment_date__gte=manila_today_start,
+        payment_date__lte=manila_today_end,
+        stored_member_id='GYMMSGUEST',
+        status='Completed'
+    ).order_by('-payment_date')
+    
+    # Combine both into a unified list
+    combined_checkins = []
+    
+    # Add member check-ins
+    for ci in member_checkins:
+        photo_url = ci.member.photo.url if ci.member.photo else None
+        combined_checkins.append({
+            'type': 'member',
+            'name': ci.member.name,
+            'photo': photo_url,
+            'time': ci.check_in_time,
+            'check_out_time': ci.check_out_time
+        })
+    
+    # Add walk-in payments
+    for payment in walkin_payments:
+        combined_checkins.append({
+            'type': 'walkin',
+            'name': payment.stored_member_name,
+            'photo': None,
+            'time': payment.payment_date,
+            'check_out_time': None
+        })
+    
+    # Sort by time (most recent first) - NO LIMIT
+    combined_checkins.sort(key=lambda x: x['time'], reverse=True)
+    recent_check_ins = combined_checkins
     
     # Format recent check-ins
     recent_list = []
-    for ci in recent_check_ins:
+    for item in recent_check_ins:
         # Calculate time ago
-        time_diff = timezone.now() - ci.check_in_time
+        time_diff = timezone.now() - item['time']
         if time_diff.seconds < 60:
             time_ago = "Just now"
         elif time_diff.seconds < 3600:
@@ -270,30 +414,17 @@ def get_stats(request):
             hours = time_diff.seconds // 3600
             time_ago = f"{hours} hour{'s' if hours != 1 else ''} ago"
         
-        # Calculate duration if checked out
-        duration_str = None
-        if ci.check_out_time:
-            duration = ci.check_out_time - ci.check_in_time
-            hours = duration.seconds // 3600
-            minutes = (duration.seconds % 3600) // 60
-            if hours > 0:
-                duration_str = f"{hours}h {minutes}m"
-            else:
-                duration_str = f"{minutes}m"
-        
         recent_list.append({
-            'id': ci.id,
-            'member_name': ci.member.name,
-            'member_id': ci.member.member_id,
+            'type': item['type'],
+            'member_name': item['name'],
+            'photo': item['photo'],
             'time_ago': time_ago,
-            'duration': duration_str,
-            'is_checked_out': ci.check_out_time is not None
         })
     
     return JsonResponse({
         'success': True,
         'daily_walk_ins': daily_walk_ins,
-        'monthly_check_ins': monthly_check_ins,
+        'member_check_ins': member_check_ins,
         'recent_check_ins': recent_list
     })
 

@@ -1,0 +1,18 @@
+{% comment %} Partial for pricing grid, used in AJAX refresh {% endcomment %}
+<div class="pricing-grid">
+    {% for plan in pricing_plans %}
+    <div class="pricing-card" data-plan-id="{{ plan.id }}">
+        <div class="plan-header">
+            <h3>{{ plan.duration_label }}</h3>
+            <div class="plan-price">₱{{ plan.price }}</div>
+            <div class="plan-duration">{{ plan.duration_days }} days</div>
+        </div>
+        <div class="plan-actions">
+            <button class="btn-secondary btn-sm" onclick="editPricing('{{ plan.id }}')">Edit</button>
+            <button class="btn-danger btn-sm" onclick="deletePricing('{{ plan.id }}', '{{ plan.duration_label }}')">Delete</button>
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty-state">No pricing plans found</div>
+    {% endfor %}
+</div>
