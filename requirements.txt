@@ -17,4 +17,7 @@ pillow>=9.0
 # Nginx dep
 gunicorn>=20.1
 
+# Date utilities
+python-dateutil>=2.8.2
+
 

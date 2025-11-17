@@ -36,7 +36,7 @@
 					<div class="stat-card">
 						<div class="stat-header">
 							<div>
-								<a href="{% url 'metrics:metrics' %}" class="stat-label">Daily Walk-ins</a>
+								<a href="{% url 'metrics:metrics' %}?filter=daily_walk_ins" class="stat-label">Daily Walk-ins</a>
 								<div class="stat-value">{{ daily_walk_ins }}</div>
 								<div class="stat-trend">Guest payments today</div>
 							</div>
@@ -48,7 +48,7 @@
 					<div class="stat-card members">
 						<div class="stat-header">
 							<div>
-								<a href="{% url 'metrics:metrics' %}" class="stat-label">Member Check-ins</a>
+								<a href="{% url 'metrics:metrics' %}?filter=total_check_ins" class="stat-label">Member Check-ins</a>
 								<div class="stat-value">{{ member_check_ins }}</div>
 								<div class="stat-trend">Members checked in today</div>
 							</div>
@@ -61,7 +61,7 @@
 						<div class="stat-header">
 							<div>
 								<div class="stat-label">
-									<a href="{% url 'metrics:metrics' %}" style="color: inherit;">Today's Revenue</a>
+									<a href="{% url 'metrics:metrics' %}?filter=total_revenue" style="color: inherit;">Today's Revenue</a>
 									<button class="revenue-toggle" id="revenueToggle" aria-label="Toggle revenue visibility">
 										<svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 											<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>

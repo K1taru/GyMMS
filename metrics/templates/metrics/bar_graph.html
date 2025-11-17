@@ -1,0 +1,20 @@
+<!-- metrics/templates/metrics/bar_graph.html -->
+{% load static %}
+<link rel="stylesheet" href="{% static 'metrics/css/bar_graph.css' %}">
+<div class="bar-graph-container">
+  <div class="bar-graph-header">
+    <h3>{{ title|default:"Bar Graph" }}</h3>
+    <div class="bar-graph-timeframe">
+      <button class="bar-graph-btn" data-period="1d">1D</button>
+      <button class="bar-graph-btn" data-period="1w">1W</button>
+      <button class="bar-graph-btn" data-period="1m">1M</button>
+      <button class="bar-graph-btn" data-period="3m">3M</button>
+      <button class="bar-graph-btn" data-period="6m">6M</button>
+      <button class="bar-graph-btn" data-period="1y">1Y</button>
+      <button class="bar-graph-btn" data-period="3y">3Y</button>
+      <button class="bar-graph-btn" data-period="all">ALL</button>
+    </div>
+  </div>
+  <canvas id="barGraphCanvas"></canvas>
+</div>
+<script src="{% static 'metrics/js/bar_graph.js' %}"></script>

@@ -1,0 +1,19 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'metrics/css/line_graph.css' %}">
+<div class="line-graph-container">
+  <div class="line-graph-header">
+    <h3>{{ title|default:'Line Graph' }}</h3>
+    <div class="line-graph-timeframe">
+      <button class="line-graph-btn" data-period="1d">1D</button>
+      <button class="line-graph-btn" data-period="1w">1W</button>
+      <button class="line-graph-btn" data-period="1m">1M</button>
+      <button class="line-graph-btn" data-period="3m">3M</button>
+      <button class="line-graph-btn" data-period="6m">6M</button>
+      <button class="line-graph-btn" data-period="1y">1Y</button>
+      <button class="line-graph-btn" data-period="3y">3Y</button>
+      <button class="line-graph-btn" data-period="all">ALL</button>
+    </div>
+  </div>
+  <canvas id="lineGraphCanvas"></canvas>
+</div>
+<script src="{% static 'metrics/js/line_graph.js' %}"></script>

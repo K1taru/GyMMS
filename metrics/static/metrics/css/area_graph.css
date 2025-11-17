@@ -1,0 +1,47 @@
+.area-graph-container {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 2rem 2rem 1.5rem 2rem;
+  margin-bottom: 2rem;
+  transition: box-shadow 0.3s;
+}
+.area-graph-container:hover {
+  box-shadow: 0 4px 24px rgba(75,192,192,0.13);
+}
+.area-graph-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.area-graph-header h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+}
+.area-graph-timeframe {
+  display: flex;
+  gap: 0.5rem;
+}
+.area-graph-btn {
+  background: #f4f7fa;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.95rem;
+  color: #4bc0c0;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.area-graph-btn.active, .area-graph-btn:hover {
+  background: #4bc0c0;
+  color: #fff;
+}
+#areaGraphCanvas {
+  width: 100% !important;
+  max-width: 100%;
+  height: 320px !important;
+  margin-top: 0.5rem;
+  transition: filter 0.3s;
+}
