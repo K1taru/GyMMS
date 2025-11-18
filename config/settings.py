@@ -37,12 +37,9 @@ INSTALLED_APPS = [
     "payments",
     "users",
     
-    "rest_framework",        # API support
     "crispy_forms",          # Better form rendering
     "django_filters",        # Filtering for lists
     "django_extensions",     # Dev utils
-    # "allauth",             # For social auth/paypal login
-    # "celery",              # For async tasks (reminders)
 
 ]
 
