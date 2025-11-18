@@ -1,5 +1,7 @@
 from django.db import models
+from django.db.models.functions import Coalesce
 from django.utils import timezone
+from decimal import Decimal
 
 
 class PaymentSummary(models.Model):
@@ -109,7 +111,7 @@ class ActiveMemberSnapshot(models.Model):
         total_revenue_today = Payment.objects.filter(
             payment_date__date=target_date,
             status='Completed'
-        ).aggregate(total=models.Sum('amount'))['total'] or 0
+        ).aggregate(total=Coalesce(models.Sum('amount'), Decimal('0.00')))['total']
         
         # Check-ins on this date
         check_ins_today = GymCheckIn.objects.filter(

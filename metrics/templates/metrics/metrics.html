@@ -22,42 +22,103 @@
 
 		<!-- Control Panel -->
 		<div class="metrics-controls">
-			<div class="control-group">
-				<label for="metricSelect">Data Metric</label>
-				<select id="metricSelect" class="metric-select">
-					<option value="check_ins">Total Check-ins</option>
-					<option value="revenue">Total Revenue</option>
-					<option value="new_members">New Members</option>
-					<option value="active_members">Active Members</option>
-					<option value="retention_rate">Retention Rate (%)</option>
-					<option value="churn_rate">Churn Rate (%)</option>
-					<option value="revenue_per_member">Revenue per Member</option>
-					<option value="avg_session_duration">Avg Session Duration (min)</option>
-					<option value="payment_methods">Payment Methods</option>
-				</select>
+			<!-- Left Column -->
+			<div class="controls-left">
+				<div class="control-group">
+					<label for="metricSelect">
+						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<line x1="12" y1="20" x2="12" y2="10"/>
+							<line x1="18" y1="20" x2="18" y2="4"/>
+							<line x1="6" y1="20" x2="6" y2="16"/>
+						</svg>
+						Data Metric
+					</label>
+					<select id="metricSelect" class="metric-select">
+						<option value="check_ins">Total Check-ins</option>
+						<option value="walk_ins">Walk-ins</option>
+						<option value="member_check_ins">Member Check-ins (Total)</option>
+						<option value="total_transactions">Total Transactions</option>
+						<option value="revenue">Total Revenue</option>
+						<option value="new_members">New Members</option>
+						<option value="active_members">Active Members</option>
+						<option value="revenue_per_member">Revenue per Member</option>
+						<option value="payment_methods">Payment Methods</option>
+					</select>
+				</div>
+
+				<div class="control-group">
+					<label for="graphTypeSelect">
+						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M3 3v18h18"/>
+							<path d="M18 17V9"/>
+							<path d="M13 17V5"/>
+							<path d="M8 17v-3"/>
+						</svg>
+						Graph Type
+					</label>
+					<select id="graphTypeSelect" class="metric-select">
+						<option value="bar">Bar Chart</option>
+						<option value="line">Line Chart</option>
+						<option value="area">Area Chart</option>
+						<option value="doughnut">Donut Chart</option>
+					</select>
+				</div>
 			</div>
 
-			<div class="control-group">
-				<label for="graphTypeSelect">Graph Type</label>
-				<select id="graphTypeSelect" class="metric-select">
-					<option value="bar">Bar Chart</option>
-					<option value="line">Line Chart</option>
-					<option value="area">Area Chart</option>
-					<option value="doughnut">Donut Chart</option>
-				</select>
-			</div>
+			<!-- Right Column -->
+			<div class="controls-right">
+				<div class="date-range-row">
+					<div class="control-group">
+						<label for="dateFrom">
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+								<line x1="16" y1="2" x2="16" y2="6"/>
+								<line x1="8" y1="2" x2="8" y2="6"/>
+								<line x1="3" y1="10" x2="21" y2="10"/>
+							</svg>
+							From Date
+						</label>
+						<input type="date" id="dateFrom" class="date-input" placeholder="Select start date">
+					</div>
+					<div class="control-group">
+						<label for="dateTo">
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+								<line x1="16" y1="2" x2="16" y2="6"/>
+								<line x1="8" y1="2" x2="8" y2="6"/>
+								<line x1="3" y1="10" x2="21" y2="10"/>
+							</svg>
+							To Date
+						</label>
+						<input type="date" id="dateTo" class="date-input" placeholder="Select end date">
+					</div>
+				</div>
 
-			<div class="control-group">
-				<label>Time Period</label>
-				<div class="timeframe-buttons">
-					<button class="timeframe-btn" data-period="1d">1D</button>
-					<button class="timeframe-btn" data-period="1w">1W</button>
-					<button class="timeframe-btn active" data-period="1m">1M</button>
-					<button class="timeframe-btn" data-period="3m">3M</button>
-					<button class="timeframe-btn" data-period="6m">6M</button>
-					<button class="timeframe-btn" data-period="1y">1Y</button>
-					<button class="timeframe-btn" data-period="3y">3Y</button>
-					<button class="timeframe-btn" data-period="all">ALL</button>
+				<button type="button" id="clearDates" class="clear-dates-btn">
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M3 6h18"/>
+						<path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+						<path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+					</svg>
+					Clear Dates
+				</button>
+
+				<div class="control-group">
+					<label>
+						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<circle cx="12" cy="12" r="10"/>
+							<polyline points="12 6 12 12 16 14"/>
+						</svg>
+						Time Frame
+					</label>
+					<div class="timeframe-buttons">
+						<button class="timeframe-btn active" data-period="1d">1D</button>
+						<button class="timeframe-btn" data-period="1w">1W</button>
+						<button class="timeframe-btn" data-period="1m">1M</button>
+						<button class="timeframe-btn" data-period="6m">6M</button>
+						<button class="timeframe-btn" data-period="1y">1Y</button>
+						<button class="timeframe-btn" data-period="all">ALL</button>
+					</div>
 				</div>
 			</div>
 		</div>

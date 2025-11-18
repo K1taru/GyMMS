@@ -34,7 +34,7 @@ def memberships(request):
         # Determine status
         if member.is_active and member.end_date >= today:
             days_until_expiry = (member.end_date - today).days
-            if days_until_expiry <= 7:
+            if days_until_expiry <= 3:
                 member.status = 'expiring'
                 expiring_soon += 1
             else:
