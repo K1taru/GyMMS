@@ -4,20 +4,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .metrics-header h1 {
-  font-size: 1.75rem;
+  font-size: clamp(2rem, 4vw, 2.5rem);
   font-weight: 700;
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.5rem 0;
   color: var(--text);
 }
 
 .metrics-header p {
   color: var(--muted);
   margin: 0;
-  font-size: 0.9rem;
+  font-size: clamp(0.95rem, 1.5vw, 1.05rem);
 }
 
 .metrics-controls {
@@ -52,7 +52,7 @@
 
 .control-group label {
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   color: var(--text);
   display: flex;
   align-items: center;
@@ -60,17 +60,17 @@
 }
 
 .control-group label svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   color: var(--accent);
 }
 
 .metric-select,
 .date-input {
-  padding: 0.65rem 0.85rem;
-  border: 1px solid #e6e6ef;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   background: var(--card);
   color: var(--text);
   cursor: pointer;
@@ -103,10 +103,10 @@
 
 .timeframe-btn {
   background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 0.55rem 1rem;
-  font-size: 0.875rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.65rem 1.15rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #374151;
   cursor: pointer;
@@ -148,14 +148,14 @@
 
 .clear-dates-btn {
   background: var(--card);
-  border: 1px solid #e6e6ef;
+  border: 2px solid #e5e7eb;
   border-radius: 8px;
-  padding: 0.6rem 0.85rem;
-  color: var(--muted);
+  padding: 0.75rem 1rem;
+  color: var(--text);
   cursor: pointer;
   transition: all 0.2s ease;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -170,8 +170,8 @@
 }
 
 .clear-dates-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
 }
 
 /* Loading State */
@@ -204,7 +204,7 @@
   }
   
   .metrics-header h1 {
-    font-size: 1.5rem;
+    font-size: clamp(1.75rem, 5vw, 2rem);
   }
   
   .timeframe-buttons {
@@ -212,8 +212,8 @@
   }
   
   .timeframe-btn {
-    padding: 0.5rem 0.9rem;
-    font-size: 0.85rem;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
   }
   
   .date-range-row {
