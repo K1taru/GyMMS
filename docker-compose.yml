@@ -28,7 +28,6 @@ services:
     depends_on:
       - db
     volumes:
-      - ./:/app  # Mount the entire project for live code reload
       - ./media:/app/media
     networks:
       - gymms_network
