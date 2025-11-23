@@ -1,0 +1,192 @@
+@startuml
+title Database Schema Architecture - Entity Relationship Diagram
+
+skinparam linetype ortho
+skinparam backgroundColor white
+
+entity "users_staffuser" as staff {
+  **id : UUID** <<PK>>
+  --
+  email : VARCHAR(255) <<UNIQUE>>
+  password : VARCHAR(128)
+  first_name : VARCHAR(100)
+  last_name : VARCHAR(100)
+  role : VARCHAR(10)
+  is_active : BOOLEAN
+  is_deleted : BOOLEAN
+  deleted_at : TIMESTAMP
+  date_joined : TIMESTAMP
+}
+
+entity "memberships_member" as member {
+  **id : UUID** <<PK>>
+  --
+  member_id : VARCHAR(10) <<UNIQUE>>
+  full_name : VARCHAR(200)
+  phone : VARCHAR(15)
+  email : VARCHAR(255)
+  sex : VARCHAR(10)
+  address : TEXT
+  emergency_contact_name : VARCHAR(200)
+  emergency_phone : VARCHAR(15)
+  start_date : DATE
+  end_date : DATE
+  membership_fee : DECIMAL(10,2)
+  photo : VARCHAR(255)
+  is_active : BOOLEAN
+  is_deleted : BOOLEAN
+  deleted_at : TIMESTAMP
+  created_by : UUID <<FK>>
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+entity "payments_payment" as payment {
+  **id : UUID** <<PK>>
+  --
+  transaction_id : UUID
+  member : UUID <<FK>>
+  stored_member_id : VARCHAR(10)
+  stored_member_name : VARCHAR(150)
+  membership_plan : INTEGER <<FK>>
+  stored_plan_label : VARCHAR(50)
+  stored_duration_days : INTEGER
+  amount : DECIMAL(10,2)
+  payment_method : VARCHAR(50)
+  reference_number : VARCHAR(100)
+  payment_date : TIMESTAMP
+  status : VARCHAR(20)
+  processed_by : UUID <<FK>>
+  remarks : TEXT
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+entity "payments_membershippricing" as pricing {
+  **id : SERIAL** <<PK>>
+  --
+  duration_days : INTEGER
+  duration_label : VARCHAR(50)
+  price : DECIMAL(10,2)
+  is_active : BOOLEAN
+  last_modified : TIMESTAMP
+}
+
+entity "metrics_gymcheckin" as checkin {
+  **id : SERIAL** <<PK>>
+  --
+  member : UUID <<FK>>
+  check_in_time : TIMESTAMP
+  check_out_time : TIMESTAMP
+  date : DATE
+  duration_minutes : INTEGER
+  processed_by : UUID <<FK>>
+}
+
+entity "dashboard_dashboardstats" as dashstats {
+  **id : SERIAL** <<PK>>
+  --
+  total_members : INTEGER
+  active_members : INTEGER
+  expired_members : INTEGER
+  expiring_soon : INTEGER
+  new_members_this_month : INTEGER
+  daily_revenue : DECIMAL(10,2)
+  monthly_revenue : DECIMAL(10,2)
+  daily_checkins : INTEGER
+  monthly_checkins : INTEGER
+  currently_active : INTEGER
+  last_updated : TIMESTAMP
+}
+
+entity "payments_paymentsummary" as paysummary {
+  **id : SERIAL** <<PK>>
+  --
+  total_revenue : DECIMAL(10,2)
+  total_transactions : INTEGER
+  revenue_by_method : JSONB
+  revenue_by_type : JSONB
+  average_transaction_value : DECIMAL(10,2)
+  last_updated : TIMESTAMP
+}
+
+entity "memberships_activemembersnapshot" as snapshot {
+  **id : SERIAL** <<PK>>
+  --
+  snapshot_date : DATE
+  active_count : INTEGER
+  expired_count : INTEGER
+  total_count : INTEGER
+}
+
+' Relationships
+member }o--|| staff : "created_by"
+payment }o--o| member : "member (nullable)"
+payment }o--|| staff : "processed_by"
+payment }o--o| pricing : "membership_plan (nullable)"
+checkin }o--|| member : "member"
+checkin }o--|| staff : "processed_by"
+
+note right of staff
+  **Authentication & Authorization**
+  - bcrypt password hashing
+  - Role-based access control
+  - Soft delete support
+  - Indexes: email, role, is_active
+end note
+
+note right of member
+  **Member Lifecycle**
+  - Auto-generated member_id (GYM+7 chars)
+  - Computed status (Active/Expired/Expiring)
+  - Photo upload support
+  - Soft delete preserves data
+  - Indexes: member_id, full_name, phone, 
+    email, end_date, is_active
+end note
+
+note right of payment
+  **Financial Transactions**
+  - UUID transaction identifiers
+  - Stores member/plan info for audit
+  - Support 7 payment methods
+  - Preserves data after member deletion
+  - Triggers subscription extension
+  - Indexes: stored_member_id, 
+    payment_date, status
+end note
+
+note left of pricing
+  **Membership Tiers**
+  - Common: 1/3/6/12 months
+  - Owner-only management
+  - Index: duration_days
+end note
+
+note left of checkin
+  **Attendance Tracking**
+  - Max 3 check-ins/day per member
+  - Validates membership status
+  - Duration auto-calculated
+  - Indexes: member, date, check_in_time
+end note
+
+note bottom of dashstats
+  **Materialized View**
+  Updated by database triggers
+  Real-time dashboard statistics
+end note
+
+note bottom of paysummary
+  **Aggregated Analytics**
+  Revenue by method/type
+  Triggered on payment changes
+end note
+
+note bottom of snapshot
+  **Historical Tracking**
+  Daily cron job
+  Member count trends
+end note
+
+@enduml

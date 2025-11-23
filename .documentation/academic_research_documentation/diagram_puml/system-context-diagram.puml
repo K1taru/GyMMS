@@ -1,0 +1,73 @@
+@startuml
+title System Context Diagram - GyMMS
+
+skinparam backgroundColor white
+skinparam padding 5
+
+' External Actors
+actor "Gym Owner" as owner #FFD54F
+actor "Gym Staff" as staff #FFF176
+
+' Main System
+rectangle "GyMMS\nGym Membership Management System" as gymms #4CAF50 {
+  rectangle "Member\nManagement" as membermgmt
+  rectangle "Payment\nProcessing" as payments
+  rectangle "Attendance\nTracking" as attendance
+  rectangle "Dashboard &\nReporting" as dashboard
+  rectangle "Staff\nManagement" as staffmgmt
+}
+
+' External Systems
+database "Backup Storage" as backup #FF8A65 {
+  rectangle "Local\nNVMe SSD" as localssd
+  rectangle "External\nUSB Drive" as usb
+  rectangle "Cloud Storage\n(Optional)" as cloud
+}
+
+rectangle "Monitoring\nServices" as monitoring #9E9E9E {
+  rectangle "Prometheus" as prometheus
+  rectangle "Grafana" as grafana
+}
+
+cloud "Cloudflare" as cloudflare #BBDEFB {
+  rectangle "Tunnel" as tunnel
+  rectangle "DDoS\nProtection" as ddos
+  rectangle "CDN" as cdn
+}
+
+' Owner interactions
+owner --> membermgmt : Register/Edit/Delete Members
+owner --> payments : Process Payments
+owner --> attendance : Check-in/Check-out
+owner --> dashboard : View Analytics & Reports
+owner --> staffmgmt : Manage Staff Accounts
+owner --> gymms : Configure System Settings
+
+' Staff interactions
+staff --> membermgmt : Register/Edit Members
+staff --> payments : Process Payments
+staff --> attendance : Check-in/Check-out
+staff --> dashboard : View Dashboard
+
+' System to External Systems
+gymms --> backup : Daily Backups
+gymms --> monitoring : System Metrics
+cloudflare --> gymms : Secure Public Access
+
+note right of backup
+  Automated daily backups
+  Multiple storage locations
+  30-day retention
+end note
+
+note left of gymms
+  **Core Features:**
+  - Member lifecycle management
+  - Payment processing & tracking
+  - Attendance monitoring
+  - Real-time dashboard
+  - Role-based access control
+  - Audit logging
+end note
+
+@enduml

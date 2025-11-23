@@ -1,0 +1,69 @@
+@startuml
+title CI/CD Pipeline - Continuous Integration and Deployment
+
+package "Development" #E3F2FD {
+  rectangle "Code\nChanges" as code
+  rectangle "Git\nCommit" as commit
+  rectangle "Push to\nGitHub" as push
+}
+
+package "CI Testing" #FFF9C4 {
+  rectangle "GitHub\nActions" as github
+  rectangle "Linters" as lint
+  rectangle "Unit\nTests" as unittest
+  rectangle "Integration\nTests" as inttest
+}
+
+package "Build" #C8E6C9 {
+  rectangle "Install\nDeps" as deps
+  rectangle "Collect\nStatic" as static
+  rectangle "Run\nMigrations" as migrate
+  rectangle "Build\nDocker" as dockerbuild
+  rectangle "Tag\nImage" as tag
+}
+
+package "Deploy" #FFCCBC {
+  rectangle "Stop\nContainers" as stop
+  rectangle "Pull\nImage" as pull
+  rectangle "Start\nContainers" as start
+  rectangle "Health\nCheck" as health
+}
+
+rectangle #4CAF50 "Production" as prod
+rectangle #EF5350 "Rollback" as rollback
+
+' 2x2 Layout positioning
+"Development" -right-> "CI Testing"
+"Build" -right-> "Deploy"
+"Development" -down-> "Build"
+"CI Testing" -down-> "Deploy"
+
+' Detailed flow
+code --> commit
+commit --> push
+push --> github
+github --> lint
+lint --> unittest
+unittest --> inttest
+
+inttest --> deps : Pass
+inttest --> rollback : Fail
+
+deps --> static
+static --> migrate
+migrate --> dockerbuild
+dockerbuild --> tag
+
+tag --> stop : Success
+tag --> rollback : Fail
+
+stop --> pull
+pull --> start
+start --> health
+
+health -down-> prod : OK
+health --> rollback : Fail
+
+prod -[hidden]right- rollback
+
+@enduml

@@ -1,0 +1,39 @@
+@startuml
+!define CONTAINER rectangle
+
+CONTAINER "Web Container\n(gymms_web)" as web {
+  [Django/Gunicorn]
+  [Python 3.11]
+  note right: Port: 8000\nWorkers: 3\nMemory: 2GB
+}
+
+CONTAINER "Database Container\n(gymms_db)" as db {
+  [PostgreSQL 16]
+  note right: Port: 5432\nMemory: 1.5GB
+}
+
+CONTAINER "Nginx Container\n(gymms_nginx)" as nginx {
+  [Nginx Reverse Proxy]
+  note right: Port: 80\nMemory: 256MB
+}
+
+database "postgres_data\nVolume" as vol1
+folder "./media" as media
+folder "./static" as static
+folder "./backups" as backups
+
+nginx -down-> web : "http://web:8000"
+web -down-> db : "PostgreSQL\nConnection"
+db -- vol1
+web -- media
+web -- static
+nginx -- static
+nginx -- media
+db -- backups
+
+cloud "gymms_network\n(Bridge)" as network
+web -[hidden]- network
+db -[hidden]- network
+nginx -[hidden]- network
+
+@enduml

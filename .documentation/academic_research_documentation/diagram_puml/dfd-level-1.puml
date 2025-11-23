@@ -1,0 +1,124 @@
+@startuml
+title Data Flow Diagram - Level 1
+
+skinparam backgroundColor white
+skinparam padding 20
+
+left to right direction
+
+' Column 1: External Entities
+rectangle "Gym Owner" as owner #FFD54F
+rectangle "Gym Staff" as staff #FFF176
+
+' Column 2: Processes
+package "Core Processes" {
+  circle "1.0\nAuth" as auth #E3F2FD
+  circle "2.0\nMember\nMgmt" as member #FFF9C4
+  circle "3.0\nPayment" as payment #C8E6C9
+  circle "4.0\nAttendance" as attendance #FFCCBC
+  circle "5.0\nReporting" as reporting #E1BEE7
+  circle "6.0\nStaff\nMgmt" as staffmgmt #FFCDD2
+}
+
+' Column 3: Data Stores
+package "Data Stores" {
+  database "D1:\nMembers" as membersdb #90CAF9
+  database "D2:\nPayments" as paymentsdb #81C784
+  database "D3:\nCheck-ins" as checkinsdb #FF8A65
+  database "D4:\nUsers" as usersdb #CE93D8
+  database "D5:\nDashboard" as dashdb #BDBDBD
+}
+
+' Layout
+owner -[hidden]down- staff
+
+' External to Auth
+owner --> auth : Login
+staff --> auth : Login
+auth --> owner : Token
+auth --> staff : Token
+
+' Owner flows
+owner --> member : Manage members
+owner --> payment : Process payments
+owner --> staffmgmt : Manage staff
+owner --> reporting : View reports
+
+member --> owner : Profiles
+payment --> owner : Receipts
+reporting --> owner : Analytics
+staffmgmt --> owner : Accounts
+
+' Staff flows
+staff --> member : Update members
+staff --> payment : Record payments
+staff --> attendance : Check-ins
+staff --> reporting : View dashboard
+
+member --> staff : Profiles
+payment --> staff : Confirmations
+attendance --> staff : Status
+reporting --> staff : Data
+
+' Process to Database
+auth <--> usersdb
+member <--> membersdb
+payment <--> paymentsdb
+attendance <--> checkinsdb
+staffmgmt --> usersdb
+
+' Process interactions
+payment --> member : Update membership
+member --> dashdb
+payment --> dashdb
+attendance --> dashdb
+
+' Reporting flows
+reporting <-- dashdb
+reporting <-- paymentsdb
+reporting <-- checkinsdb
+reporting <-- membersdb
+
+note right of auth
+  **Process 1.0**
+  Validates credentials
+  Creates session
+  Checks permissions
+end note
+
+note right of member
+  **Process 2.0**
+  Member CRUD operations
+  Search and filtering
+  Photo management
+end note
+
+note right of payment
+  **Process 3.0**
+  Payment processing
+  Subscription extension
+  Receipt generation
+end note
+
+note right of attendance
+  **Process 4.0**
+  Check-in/check-out
+  Validate membership
+  Calculate duration
+end note
+
+note right of reporting
+  **Process 5.0**
+  Dashboard statistics
+  Financial reports
+  Attendance analytics
+end note
+
+note right of staffmgmt
+  **Process 6.0**
+  Staff account management
+  Role assignments
+  (Owner only)
+end note
+
+@enduml
