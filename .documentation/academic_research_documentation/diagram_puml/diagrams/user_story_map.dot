@@ -1,0 +1,193 @@
+// User Story Map for GyMMS
+// Visual representation of user stories organized by user activities
+// To generate: dot -Tpng user_story_map.dot -o user_story_map.png
+
+digraph UserStoryMap {
+    // Graph settings
+    rankdir=TB;
+    splines=false;
+    nodesep=0.6;
+    ranksep=0.8;
+    
+    // Style definitions
+    node [fontname="Arial", fontsize=9];
+    edge [style=invis];
+    
+    // Title
+    Title [label="GyMMS User Story Map", shape=box, style="filled,bold", fillcolor=lightblue, fontsize=14];
+    
+    // User Activities (Epics) - Top Level
+    subgraph cluster_activities {
+        label="User Activities (Epics)";
+        style=filled;
+        fillcolor="#E6F7FF";
+        fontsize=11;
+        rank=same;
+        
+        A1 [label="Authentication\n& Access", shape=box, style="rounded,filled", fillcolor=lightblue, fontsize=10];
+        A2 [label="Member\nManagement", shape=box, style="rounded,filled", fillcolor=lightgreen, fontsize=10];
+        A3 [label="Payment\nProcessing", shape=box, style="rounded,filled", fillcolor=lightcoral, fontsize=10];
+        A4 [label="Facility\nAccess", shape=box, style="rounded,filled", fillcolor=lightyellow, fontsize=10];
+        A5 [label="Analytics &\nReporting", shape=box, style="rounded,filled", fillcolor=lightcyan, fontsize=10];
+        A6 [label="System\nAdministration", shape=box, style="rounded,filled", fillcolor=wheat, fontsize=10];
+        
+        A1 -> A2 -> A3 -> A4 -> A5 -> A6;
+    }
+    
+    Title -> A1 [constraint=true];
+    
+    // User Stories - Second Level (grouped by activity)
+    
+    // Authentication Stories
+    subgraph cluster_auth_stories {
+        label="";
+        style=invis;
+        
+        S1_1 [label="As a staff member,\nI want to log in securely\nso I can access the system", 
+              shape=note, style=filled, fillcolor=white, fontsize=8];
+        S1_2 [label="As an owner,\nI want role-based access\nso staff can't access admin functions", 
+              shape=note, style=filled, fillcolor=white, fontsize=8];
+        S1_3 [label="As a user,\nI want to change my password\nfor security", 
+              shape=note, style=filled, fillcolor=white, fontsize=8];
+        
+        S1_1 -> S1_2 -> S1_3;
+    }
+    
+    // Member Management Stories
+    subgraph cluster_member_stories {
+        label="";
+        style=invis;
+        
+        S2_1 [label="As staff,\nI want to register new members quickly\nwithout paperwork delays", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S2_2 [label="As staff,\nI want to search members by name/ID\nto find them fast", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S2_3 [label="As staff,\nI want to edit member profiles\nwhen info changes", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S2_4 [label="As staff,\nI want to see member status at a glance\nto know who needs renewal", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S2_5 [label="As owner,\nI want to soft-delete members\npreserving payment history", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        
+        S2_1 -> S2_2 -> S2_3 -> S2_4 -> S2_5;
+    }
+    
+    // Payment Processing Stories
+    subgraph cluster_payment_stories {
+        label="";
+        style=invis;
+        
+        S3_1 [label="As staff,\nI want to process payments\nwith auto subscription extension", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S3_2 [label="As staff,\nI want to accept multiple payment methods\nfor member convenience", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S3_3 [label="As owner,\nI want to view payment history\nfor financial tracking", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S3_4 [label="As owner,\nI want to transaction audit trails\nfor accountability", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        
+        S3_1 -> S3_2 -> S3_3 -> S3_4;
+    }
+    
+    // Facility Access Stories
+    subgraph cluster_facility_stories {
+        label="";
+        style=invis;
+        
+        S4_1 [label="As staff,\nI want to check in members quickly\nwithout disrupting their workout", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S4_2 [label="As staff,\nI want membership validation\nto prevent expired access", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S4_3 [label="As staff,\nI want to record check-outs\nfor session tracking", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S4_4 [label="As owner,\nI want daily check-in limits\nto prevent abuse", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        
+        S4_1 -> S4_2 -> S4_3 -> S4_4;
+    }
+    
+    // Analytics Stories
+    subgraph cluster_analytics_stories {
+        label="";
+        style=invis;
+        
+        S5_1 [label="As owner,\nI want a dashboard overview\nto understand business health", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S5_2 [label="As owner,\nI want membership trends\nfor growth tracking", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S5_3 [label="As owner,\nI want revenue reports\nfor financial planning", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S5_4 [label="As owner,\nI want facility usage data\nfor peak hour identification", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        
+        S5_1 -> S5_2 -> S5_3 -> S5_4;
+    }
+    
+    // Administration Stories
+    subgraph cluster_admin_stories {
+        label="";
+        style=invis;
+        
+        S6_1 [label="As owner,\nI want to manage staff accounts\nfor access control", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S6_2 [label="As owner,\nI want to configure pricing tiers\nfor flexible offerings", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        S6_3 [label="As owner,\nI want audit logs\nfor accountability", 
+              shape=note, style=filled, fillcolor=white, fontsize=11, width=2.5];
+        
+        S6_1 -> S6_2 -> S6_3;
+    }
+    
+    // Connect activities to stories
+    A1 -> S1_1 [constraint=true, style=solid, arrowhead=none, color=lightblue];
+    A2 -> S2_1 [constraint=true, style=solid, arrowhead=none, color=lightgreen];
+    A3 -> S3_1 [constraint=true, style=solid, arrowhead=none, color=lightcoral];
+    A4 -> S4_1 [constraint=true, style=solid, arrowhead=none, color=lightyellow];
+    A5 -> S5_1 [constraint=true, style=solid, arrowhead=none, color=lightcyan];
+    A6 -> S6_1 [constraint=true, style=solid, arrowhead=none, color=wheat];
+    
+    // Priority indicators (below stories)
+    subgraph cluster_priorities {
+        label="Implementation Priority";
+        style=filled;
+        fillcolor="#FFF5E6";
+        fontsize=11;
+        
+        P1 [label="MVP (Must Have)\n• Authentication\n• Member Registration\n• Payment Processing\n• Basic Check-in\n• Dashboard Overview", 
+           shape=box, style=filled, fillcolor="#90EE90", fontsize=9];
+        P2 [label="Phase 2 (Should Have)\n• Advanced Search\n• Check-out Tracking\n• Analytics Charts\n• Staff Management\n• Audit Logs", 
+           shape=box, style=filled, fillcolor="#FFD700", fontsize=9];
+        P3 [label="Future (Nice to Have)\n• Mobile App\n• Email Notifications\n• Advanced Reports\n• Inventory Management\n• Class Scheduling", 
+           shape=box, style=filled, fillcolor="#87CEEB", fontsize=9];
+        
+        P1 -> P2 -> P3;
+    }
+    
+    // Connect lowest stories to priority indicators
+    S1_3 -> P1 [style=invis];
+    S2_5 -> P1 [style=invis];
+    
+    // Legend
+    subgraph cluster_legend {
+        label="Legend";
+        style=solid;
+        fontsize=10;
+        
+        L1 [label="User Activity (Epic)", shape=box, style="rounded,filled", fillcolor=lightblue, fontsize=9];
+        L2 [label="User Story\n(I want... so that...)", shape=note, style=filled, fillcolor=white, fontsize=9];
+        L3 [label="MVP Priority", shape=box, style=filled, fillcolor="#90EE90", fontsize=9];
+        L4 [label="Phase 2 Priority", shape=box, style=filled, fillcolor="#FFD700", fontsize=9];
+        L5 [label="Future Enhancement", shape=box, style=filled, fillcolor="#87CEEB", fontsize=9];
+        
+        L1 -> L2 [style=invis];
+        L2 -> L3 [style=invis];
+        L3 -> L4 [style=invis];
+        L4 -> L5 [style=invis];
+    }
+    
+    // Notes
+    Notes [label="User Story Format:\nAs a [role],\nI want to [action],\nSo that [benefit]\n\nTotal Stories: 23\nEpics: 6\nMVP Stories: 8", 
+          shape=note, style=filled, fillcolor=lightyellow, fontsize=9];
+    
+    P3 -> Notes [style=invis];
+}

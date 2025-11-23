@@ -1,0 +1,295 @@
+// ============================================
+// GYMMS DATABASE SCHEMA
+// Gym Membership Management System
+// ============================================
+
+// 1. AUTHENTICATION & STAFF MANAGEMENT
+Table StaffUser {
+  id integer [pk, increment]
+  username varchar(150) [unique, not null]
+  name varchar(255) [null]
+  email varchar(254) [not null]
+  password varchar(128) [not null]
+  phone_number varchar(20) [null]
+  profile_image varchar(100) [null] // Path to staff_photos/
+  role enum('Owner', 'Staff') [default: 'Staff', not null]
+  created_by_id integer [ref: > StaffUser.id, null] // Self-referential FK
+  is_email_verified boolean [default: false]
+  is_phone_verified boolean [default: false]
+  last_password_change timestamp [null]
+  is_active boolean [default: true]
+  is_staff boolean [default: false]
+  is_superuser boolean [default: false]
+  date_joined timestamp [not null]
+  last_login timestamp [null]
+  
+  Indexes {
+    (username) [unique]
+    (email) [name: "idx_staffuser_email"]
+    (role) [name: "idx_staffuser_role"]
+  }
+  
+  Note: "Extends Django AbstractUser. Only Owners can create Staff accounts. Superusers bypass role restrictions."
+}
+
+// 2. MEMBER MANAGEMENT
+Table Member {
+  id integer [pk, increment]
+  member_id varchar(10) [unique, not null] // Format: GYMA7X2K9P (auto-generated alphanumeric)
+  name varchar(150) [not null]
+  email varchar(254) [null]
+  phone_number varchar(20) [not null]
+  sex enum('Male', 'Female') [null]
+  address text [not null]
+  photo varchar(100) [null] // Path to member_photos/{member_id}.ext
+  emergency_contact varchar(100) [not null]
+  emergency_phone varchar(20) [not null]
+  start_date date [not null]
+  end_date date [not null]
+  membership_fee decimal(10,2) [not null]
+  is_active boolean [default: true]
+  created_by_id integer [ref: > StaffUser.id, null, on_delete: SET_NULL]
+  date_created timestamp [not null]
+  is_deleted boolean [default: false] // Soft delete flag
+  deleted_at timestamp [null]
+  
+  Indexes {
+    (member_id) [unique]
+    (is_active) [name: "idx_member_active"]
+    (end_date) [name: "idx_member_enddate"]
+    (date_created) [name: "idx_member_created"]
+  }
+  
+  Note: "Soft delete preserves historical data. Members don't have login access. Phone numbers are numeric-only validated."
+}
+
+// 3. MEMBERSHIP PRICING CONFIGURATION
+Table MembershipPricing {
+  id integer [pk, increment]
+  duration_days integer [not null]
+  duration_label varchar(50) [not null] // e.g., "1 Month", "3 Months", "6 Months"
+  price decimal(10,2) [not null]
+  is_active boolean [default: true]
+  last_modified timestamp [not null]
+  
+  Indexes {
+    (duration_days) [name: "idx_pricing_duration"]
+    (is_active) [name: "idx_pricing_active"]
+  }
+  
+  Note: "Global pricing tiers. Only Owner can modify. Soft-deleted plans preserved for historical payments."
+}
+
+// 4. MEMBERSHIP CONFIGURATION (Legacy/Optional)
+Table MembershipConfig {
+  id integer [pk, increment]
+  membership_fee decimal(10,2) [not null]
+  last_modified timestamp [not null]
+  
+  Note: "Legacy single-fee configuration. MembershipPricing table provides more flexible multi-tier pricing."
+}
+
+// 5. PAYMENT PROCESSING
+Table Payment {
+  id uuid [pk] // UUID4 for global uniqueness and security
+  member_fk_id integer [ref: > Member.id, null, on_delete: SET_NULL] // Foreign key to Member
+  stored_member_id varchar(10) [default: 'UNKNOWN', not null] // Preserved member ID
+  stored_member_name varchar(150) [default: 'Unknown Member', not null] // Preserved member name
+  membership_plan_id integer [ref: > MembershipPricing.id, null, on_delete: SET_NULL]
+  stored_plan_label varchar(50) [default: 'Unknown Plan', not null] // Preserved plan label
+  stored_duration_days integer [default: 0, not null] // Preserved duration
+  amount decimal(10,2) [default: 0.00, not null]
+  payment_method enum('Cash', 'GCash', 'Maya', 'GoTyme', 'Bank Transfer', 'PayPal', 'Debit Card', 'Credit Card') [default: 'Cash', not null]
+  reference_number varchar(100) [null] // Required for digital payments
+  payment_date timestamp [not null]
+  status enum('Completed', 'Failed', 'Refunded') [default: 'Completed', not null]
+  processed_by_id integer [ref: > StaffUser.id, null, on_delete: SET_NULL]
+  remarks text [null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  
+  Indexes {
+    (stored_member_id) [name: "idx_payment_member"]
+    (payment_date) [name: "idx_payment_date"]
+    (status) [name: "idx_payment_status"]
+  }
+  
+  Note: "UUID primary key prevents enumeration attacks. Data preservation pattern ensures audit trail integrity even after member/plan deletion."
+}
+
+// 6. PAYMENT ANALYTICS
+Table PaymentSummary {
+  id integer [pk, increment]
+  month date [unique, not null] // First day of month (YYYY-MM-01)
+  total_income decimal(10,2) [not null]
+  total_transactions integer [not null]
+  generated_at timestamp [not null]
+  
+  Indexes {
+    (month) [unique, name: "idx_paymentsummary_month"]
+  }
+  
+  Note: "Pre-computed monthly aggregations for performance optimization."
+}
+
+// 7. GYM CHECK-IN TRACKING
+Table GymCheckIn {
+  id integer [pk, increment]
+  member_id integer [ref: > Member.id, not null, on_delete: CASCADE]
+  check_in_time timestamp [not null]
+  check_out_time timestamp [null]
+  date date [not null]
+  
+  Indexes {
+    (date) [name: "idx_checkin_date"]
+    (member_id, date) [name: "idx_checkin_member_date"]
+  }
+  
+  Note: "Tracks facility access. Max 3 check-ins per member per day enforced at application level. Duration calculated from check_in_time to check_out_time."
+}
+
+// 8. DASHBOARD STATISTICS (Cache)
+Table DashboardStats {
+  id integer [pk, increment]
+  date date [unique, not null]
+  daily_walk_ins integer [default: 0]
+  total_check_ins integer [default: 0]
+  total_revenue decimal(12,2) [default: 0.00]
+  active_members integer [default: 0]
+  new_members integer [default: 0]
+  last_updated timestamp [not null]
+  
+  Indexes {
+    (date) [unique, name: "idx_dashstats_date"]
+  }
+  
+  Note: "Optional caching layer for expensive dashboard queries. Auto-computed from source tables."
+}
+
+// 9. HISTORICAL MEMBER SNAPSHOTS
+Table ActiveMemberSnapshot {
+  id integer [pk, increment]
+  date date [unique, not null]
+  active_count integer [default: 0] // Active memberships on this date
+  total_members integer [default: 0] // Total non-deleted members
+  new_members_today integer [default: 0] // New registrations this date
+  expired_today integer [default: 0] // Memberships expired this date
+  total_revenue_today decimal(12,2) [default: 0.00] // Revenue collected this date
+  check_ins_today integer [default: 0] // Check-ins this date
+  created_at timestamp [not null]
+  
+  Indexes {
+    (date) [unique, name: "idx_snapshot_date"]
+    (date) [name: "idx_snapshot_date_desc", note: "Descending order index"]
+  }
+  
+  Note: "Daily snapshots enable accurate time-series analysis. Generated via scheduled job (cron)."
+}
+
+// ============================================
+// RELATIONSHIPS
+// ============================================
+
+// Staff Management
+Ref: StaffUser.created_by_id > StaffUser.id [note: "Self-referential: Owner creates Staff"]
+
+// Member Management
+Ref: Member.created_by_id > StaffUser.id [note: "Staff/Owner who registered member"]
+
+// Payment Relationships
+Ref: Payment.member_fk_id > Member.id [note: "SET_NULL on member deletion preserves payment"]
+Ref: Payment.membership_plan_id > MembershipPricing.id [note: "SET_NULL on plan deletion"]
+Ref: Payment.processed_by_id > StaffUser.id [note: "Staff/Owner who processed payment"]
+
+// Check-In Tracking
+Ref: GymCheckIn.member_id > Member.id [note: "CASCADE on member deletion"]
+
+// ============================================
+// BUSINESS RULES (Application-Level)
+// ============================================
+
+Note BusinessRules {
+  '''
+  AUTHENTICATION & AUTHORIZATION:
+  - Only Owners can create Staff accounts
+  - Only Owners can modify MembershipPricing and MembershipConfig
+  - Staff can perform all operational tasks (member CRUD, payments, check-ins)
+  - Superusers bypass all role restrictions
+  
+  MEMBER MANAGEMENT:
+  - member_id auto-generated: Format GYMA7X2K9P (GYM prefix + 7 alphanumeric)
+  - Soft delete: is_deleted=True, deleted_at=timestamp (preserves history)
+  - Phone validation: Numeric-only via RegexValidator (r'^\d+$')
+  - Membership status calculated: start_date <= today <= end_date AND is_active=True
+  - Expiring soon: 0 <= days_until_expiry <= 7
+  
+  PAYMENT PROCESSING:
+  - UUID primary key prevents transaction enumeration
+  - Digital payments require reference_number (GCash, Maya, GoTyme, Bank Transfer, PayPal, Cards)
+  - Data preservation: stored_member_id, stored_member_name, stored_plan_label, stored_duration_days
+  - Membership extension logic:
+    * If membership active (end_date >= today): new_end_date = current_end_date + duration_days
+    * If membership expired (end_date < today): new_end_date = today + duration_days
+  - All payments default to 'Completed' status
+  
+  CHECK-IN TRACKING:
+  - Maximum 3 check-ins per member per day (enforced in view logic)
+  - Duplicate active check-in prevention (must check-out before next check-in)
+  - Membership validation (only active members can check-in)
+  - Session duration = check_out_time - check_in_time
+  - Average session: 75-90 minutes
+  - Peak hours: 6-8 AM and 6-9 PM
+  
+  ANALYTICS & REPORTING:
+  - ActiveMemberSnapshot created daily via scheduled job (cron 2:00 AM)
+  - PaymentSummary aggregates monthly (first day of month as key)
+  - DashboardStats optional caching layer (refresh on demand or scheduled)
+  - All timestamps in Philippine Time (Asia/Manila, UTC+8)
+  
+  DATA INTEGRITY:
+  - Foreign keys use SET_NULL for payments (preserve audit trail)
+  - Foreign keys use CASCADE for check-ins (no orphaned records needed)
+  - Soft delete for Member and MembershipPricing (preserve references)
+  - Hard delete not permitted for records with payment history
+  '''
+}
+
+// ============================================
+// PERFORMANCE OPTIMIZATIONS
+// ============================================
+
+Note PerformanceNotes {
+  '''
+  INDEXING STRATEGY:
+  - B-tree indexes on frequently queried fields:
+    * member_id (unique constraint + queries)
+    * email (login + searches)
+    * payment_date (date range queries)
+    * check_in date (daily aggregations)
+    * end_date (expiration checks)
+  
+  - Composite indexes:
+    * (member_id, date) for check-in queries
+    * (date, status) for payment filtering
+  
+  QUERY OPTIMIZATION:
+  - Use select_related() for FK joins (StaffUser, Member)
+  - Use prefetch_related() for reverse FK (payments, check_ins)
+  - Aggregate at database level (Count, Sum, Avg)
+  - Cache expensive queries in DashboardStats table
+  
+  DATABASE CONFIGURATION:
+  - PostgreSQL 16 with following tuning:
+    * shared_buffers = 256MB (25% of 1GB allocated)
+    * effective_cache_size = 1GB
+    * work_mem = 8MB
+    * maintenance_work_mem = 128MB
+    * max_connections = 100
+  
+  EXPECTED SCALE:
+  - Tested with 5,000 members
+  - 50,000 payment records
+  - 100,000 check-in records
+  - Response times: <500ms for dashboard, <300ms for searches
+  '''
+}

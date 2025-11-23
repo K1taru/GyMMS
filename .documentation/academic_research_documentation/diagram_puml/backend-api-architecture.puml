@@ -1,0 +1,155 @@
+@startuml
+title Backend API Architecture
+
+left to right direction
+
+actor "Web Client" as web
+actor "Mobile App\n(Future)" as mobile
+actor "Third-Party\nIntegration" as thirdparty
+
+rectangle "Authentication Layer" #E3F2FD {
+  rectangle "Session-Based\nAuth" as session {
+    note bottom
+      Django sessions
+      CSRF tokens
+      30-min timeout
+    end note
+  }
+  rectangle "Token-Based\nAuth (Future)" as token {
+    note bottom
+      JWT tokens
+      Token refresh
+      API keys
+    end note
+  }
+}
+
+rectangle "API Endpoints" #FFF9C4 {
+  rectangle "Member APIs" as memberapi {
+    note bottom
+      GET /api/members/search
+      GET /api/members/{id}
+      POST /api/members/
+    end note
+  }
+  rectangle "Payment APIs" as paymentapi {
+    note bottom
+      POST /api/payments/process
+      GET /api/payments/
+      GET /api/payments/{id}
+    end note
+  }
+  rectangle "Check-in APIs" as checkinapi {
+    note bottom
+      POST /api/checkins/
+      POST /api/checkins/checkout
+      GET /api/checkins/active
+    end note
+  }
+  rectangle "Dashboard APIs" as dashapi {
+    note bottom
+      GET /api/dashboard/stats
+      GET /api/dashboard/charts
+      GET /api/reports/
+    end note
+  }
+}
+
+rectangle "Business Logic Layer" #C8E6C9 {
+  rectangle "Django Views" as views
+  rectangle "Forms &\nValidation" as forms
+  rectangle "Model\nOperations" as models
+  rectangle "Permissions\nCheck" as perms {
+    note bottom
+      Role-based access
+      Owner vs Staff
+    end note
+  }
+}
+
+rectangle "Data Layer" #FFCCBC {
+  database "PostgreSQL" as db
+  rectangle "Django ORM" as orm
+  rectangle "Query\nOptimization" as optimize {
+    note bottom
+      select_related
+      prefetch_related
+    end note
+  }
+}
+
+rectangle "Response Format" #E1BEE7 {
+  rectangle "JSON\nResponses" as json {
+    note bottom
+      Success: {success, data}
+      Error: {success, error}
+    end note
+  }
+  rectangle "HTTP Status\nCodes" as status {
+    note bottom
+      200 OK, 201 Created
+      400 Bad Request
+      401 Unauthorized
+      404 Not Found
+    end note
+  }
+}
+
+rectangle "Security & Rate Limiting" #FFCDD2 {
+  rectangle "Rate\nLimiting" as rate {
+    note bottom
+      20 req/min (unauth)
+      100 req/min (auth)
+    end note
+  }
+  rectangle "Input\nValidation" as validation
+  rectangle "Error\nHandling" as errors
+}
+
+' Connections - Web Client Flow
+web --> session
+session --> memberapi
+session --> paymentapi
+session --> checkinapi
+session --> dashapi
+
+' Future Mobile Flow
+mobile -[dotted]-> token
+token -[dotted]-> memberapi
+token -[dotted]-> paymentapi
+
+' Third-party Flow
+thirdparty -[dotted]-> token
+
+' API to Business Logic
+memberapi --> views
+paymentapi --> views
+checkinapi --> views
+dashapi --> views
+
+views --> perms
+perms --> forms
+forms --> models
+
+' Business Logic to Data
+models --> orm
+orm --> optimize
+optimize --> db
+
+' Response flow
+db --> json
+json --> status
+status --> web
+
+' Security
+session -down-> rate
+token -down-> validation
+views -down-> errors
+
+note right of db
+  RESTful principles
+  Resource-oriented URLs
+  Standard HTTP methods
+end note
+
+@enduml

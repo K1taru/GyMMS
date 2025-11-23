@@ -1,0 +1,139 @@
+@startuml
+title Multi-Layered Form Validation Architecture
+
+left to right direction
+
+actor "User" as user
+
+rectangle "Layer 1: Client-Side Validation" #E3F2FD {
+  rectangle "HTML5\nAttributes" as html5 {
+    note bottom
+      required, pattern
+      min, max, type
+    end note
+  }
+  rectangle "JavaScript\nValidation" as js {
+    note bottom
+      Real-time feedback
+      Phone formatting
+      Email syntax
+    end note
+  }
+  rectangle "AJAX\nDebouncing" as ajax {
+    note bottom
+      300ms delay
+      Prevent excess requests
+    end note
+  }
+}
+
+rectangle "Layer 2: Django Form Validation" #FFF9C4 {
+  rectangle "Field-level\nValidation" as fieldval {
+    note bottom
+      clean_<field>()
+      Individual field rules
+    end note
+  }
+  rectangle "Form-level\nValidation" as formval {
+    note bottom
+      clean() method
+      Cross-field rules
+    end note
+  }
+  rectangle "Type\nCoercion" as coerce {
+    note bottom
+      String to Python types
+      Date parsing
+    end note
+  }
+}
+
+rectangle "Layer 3: Model Validation" #C8E6C9 {
+  rectangle "Field\nConstraints" as constraints {
+    note bottom
+      max_length, null
+      blank, unique
+    end note
+  }
+  rectangle "Custom\nValidators" as validators {
+    note bottom
+      Phone format
+      Member ID format
+    end note
+  }
+  rectangle "Pre-save\nValidation" as presave {
+    note bottom
+      Auto-execution
+      Before DB save
+    end note
+  }
+}
+
+rectangle "Layer 4: Database Integrity" #FFCCBC {
+  rectangle "Primary Key\nUniqueness" as pk {
+    note bottom
+      PostgreSQL enforced
+    end note
+  }
+  rectangle "Foreign Key\nIntegrity" as fk {
+    note bottom
+      CASCADE on update
+      RESTRICT on delete
+    end note
+  }
+  rectangle "Check\nConstraints" as checks {
+    note bottom
+      amount > 0
+      duration_days > 0
+    end note
+  }
+  rectangle "Unique\nConstraints" as unique {
+    note bottom
+      member_id
+      email, transaction_id
+    end note
+  }
+}
+
+database "PostgreSQL\nDatabase" as db #4CAF50
+
+rectangle "Security Measures" #FFCDD2 {
+  rectangle "CSRF\nProtection" as csrf
+  rectangle "SQL Injection\nPrevention" as sql
+  rectangle "XSS\nPrevention" as xss
+  rectangle "Rate\nLimiting" as rate
+}
+
+user --> html5
+html5 --> js
+js --> ajax
+ajax --> fieldval : Submit
+
+fieldval --> formval
+formval --> coerce
+coerce --> constraints : Valid
+
+constraints --> validators
+validators --> presave
+presave --> pk : Pass
+
+pk --> fk
+fk --> checks
+checks --> unique
+unique --> db : Save
+
+csrf -[hidden]down- sql
+sql -[hidden]down- xss
+xss -[hidden]down- rate
+
+ajax -down-> csrf : Protected
+coerce -down-> sql : Parameterized
+presave -down-> xss : Escaped
+db -down-> rate : Limited
+
+note right of db
+  Final data integrity
+  All layers passed
+end note
+
+@enduml

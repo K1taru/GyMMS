@@ -1,0 +1,46 @@
+@startuml
+title Data Flow Diagram - Level 0 (Context Diagram)
+
+skinparam backgroundColor white
+skinparam padding 10
+
+' External Entities
+rectangle "Gym Owner\n(Admin)" as owner #FFD54F
+rectangle "Gym Staff\n(Staff)" as staff #FFF176
+
+' System
+circle "GyMMS\nGym Membership\nManagement\nSystem" as system #4CAF50
+
+' Layout positioning
+owner -[hidden]down- staff
+
+' Data Flows - Owner to System (Admin permissions)
+owner -right-> system : Member & Staff management
+owner -right-> system : Payment processing
+owner -right-> system : System configuration
+
+' Data Flows - System to Owner (Admin reports)
+system -left-> owner : Dashboard & Analytics
+system -left-> owner : Financial reports
+system -left-> owner : Audit logs & Alerts
+
+' Data Flows - Staff to System (Staff permissions)
+staff -right-> system : Member information
+staff -right-> system : Payment processing
+staff -right-> system : Check-in/out requests
+
+' Data Flows - System to Staff (Staff views)
+system -left-> staff : Member status
+system -left-> staff : Payment confirmations
+system -left-> staff : Dashboard views
+
+note right of system
+  **Single Process View**
+  All system functionality
+  encapsulated as one process
+  
+  Owner: Full admin access
+  Staff: Limited permissions
+end note
+
+@enduml

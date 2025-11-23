@@ -1,0 +1,53 @@
+@startuml
+title Cloudflare Tunnel Network Architecture
+
+skinparam backgroundColor white
+skinparam padding 5
+skinparam nodesep 40
+skinparam ranksep 60
+
+' Top: End Users
+actor "Users" as users
+rectangle "gymms.domain.com" as domain #FFF9C4
+
+' Right: Cloudflare
+cloud "Cloudflare Edge" as cloudflare #BBDEFB {
+  rectangle "DDoS" as ddos
+  rectangle "WAF" as waf
+  rectangle "CDN" as cdn
+  rectangle "SSL" as ssl
+}
+
+' Connections
+users --> domain : HTTPS
+domain --> cloudflare
+
+' Below: Raspberry Pi
+rectangle "Local Network 192.168.x.x" as localnet #C8E6C9 {
+  rectangle "Raspberry Pi 5" as rpi #A5D6A7 {
+    rectangle "Django" as django
+    rectangle "PostgreSQL" as db
+    rectangle "Nginx" as nginx
+    rectangle "cloudflared" as tunnel #FFCC80
+  }
+}
+
+cloudflare <--> tunnel : Tunnel
+tunnel --> nginx : :80
+nginx --> django : :8000
+django --> db
+
+note right of localnet
+  No Port Forward
+  No Static IP
+  No Inbound Rules
+end note
+
+note bottom of cloudflare
+  Origin IP Hidden
+  Auto SSL Certs
+  DDoS Protection
+  Global Network
+end note
+
+@enduml

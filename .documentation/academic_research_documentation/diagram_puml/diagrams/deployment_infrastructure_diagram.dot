@@ -1,0 +1,222 @@
+// Deployment Infrastructure Diagram for GyMMS
+// Figure 4.1: Docker Container Architecture with Cloudflare Tunnel
+// To generate: dot -Tpng deployment_infrastructure_diagram.dot -o deployment_infrastructure_diagram.png
+// Or use: dot -Tsvg deployment_infrastructure_diagram.dot -o deployment_infrastructure_diagram.svg
+
+digraph DeploymentInfrastructure {
+    // Graph settings
+    rankdir=TB;
+    splines=ortho;
+    nodesep=1.0;
+    ranksep=1.5;
+    compound=true;
+    
+    // Style definitions
+    node [fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=9];
+    
+    // External Users
+    subgraph cluster_users {
+        label="End Users";
+        style=filled;
+        fillcolor="#E6F7FF";
+        fontsize=12;
+        fontname="Arial Bold";
+        
+        Users [label="Web Browsers\n(Desktop, Tablet, Mobile)", 
+              shape=box, style="rounded,filled", fillcolor=white];
+    }
+    
+    // Cloudflare Edge Network
+    subgraph cluster_cloudflare {
+        label="Cloudflare Edge Network";
+        style=filled;
+        fillcolor="#FFE6CC";
+        fontsize=12;
+        fontname="Arial Bold";
+        
+        CFEdge [label="Cloudflare Edge\n(300+ Global Locations)", 
+               shape=cloud, style=filled, fillcolor=white];
+        
+        subgraph cluster_cf_features {
+            label="";
+            style=invis;
+            
+            DDoS [label="DDoS Protection", shape=box, style="rounded,filled", fillcolor=lightgreen];
+            WAF [label="Web Application\nFirewall", shape=box, style="rounded,filled", fillcolor=lightgreen];
+            SSL [label="Automatic SSL/TLS\n(TLS 1.3)", shape=box, style="rounded,filled", fillcolor=lightgreen];
+            CDN [label="CDN Caching", shape=box, style="rounded,filled", fillcolor=lightgreen];
+        }
+    }
+    
+    // Raspberry Pi Hardware
+    subgraph cluster_raspberry_pi {
+        label="Raspberry Pi 5 (8GB)\nLocal Network (192.168.x.x)\nNo Port Forwarding Required";
+        style=filled;
+        fillcolor="#FFE6E6";
+        fontsize=12;
+        fontname="Arial Bold";
+        
+        // Cloudflared daemon
+        Cloudflared [label="cloudflared\nTunnel Daemon\nOutbound HTTPS Only", 
+                    shape=box, style="rounded,filled", fillcolor=lightcyan];
+        
+        // Docker environment
+        subgraph cluster_docker {
+            label="Docker Engine 24.0+";
+            style=filled;
+            fillcolor="#FFF0F0";
+            fontsize=11;
+            
+            // Nginx Container
+            subgraph cluster_nginx {
+                label="gymms_nginx Container";
+                style=filled;
+                fillcolor=white;
+                
+                Nginx [label="Nginx Alpine\nReverse Proxy\nStatic File Server", 
+                      shape=component, style=filled, fillcolor=lightyellow];
+                NginxConfig [label="nginx.conf\n• Proxy to Gunicorn\n• Gzip Compression\n• Security Headers\n• Cache Control", 
+                            shape=note, style=filled, fillcolor=lightyellow];
+                
+                Nginx -> NginxConfig [style=invis];
+            }
+            
+            // Web Container
+            subgraph cluster_web {
+                label="gymms_web Container";
+                style=filled;
+                fillcolor=white;
+                
+                Gunicorn [label="Gunicorn 21.2\n3 Workers\nWSGI Server", 
+                         shape=component, style=filled, fillcolor=lightblue];
+                Django [label="Django 5.0+\nPython 3.11\nApplication Code", 
+                       shape=component, style=filled, fillcolor=lightblue];
+                
+                Gunicorn -> Django [label="WSGI"];
+            }
+            
+            // Database Container
+            subgraph cluster_db {
+                label="gymms_db Container";
+                style=filled;
+                fillcolor=white;
+                
+                PostgreSQL [label="PostgreSQL 16\nAlpine Linux\nPort 5432", 
+                           shape=cylinder, style=filled, fillcolor=lightgreen];
+                DBConfig [label="Configuration:\n• max_connections: 100\n• shared_buffers: 256MB\n• work_mem: 8MB", 
+                         shape=note, style=filled, fillcolor=lightyellow];
+                
+                PostgreSQL -> DBConfig [style=invis];
+            }
+            
+            // Docker Volumes
+            subgraph cluster_volumes {
+                label="Docker Volumes";
+                style=filled;
+                fillcolor="#FFFACD";
+                
+                VolPostgres [label="postgres_data\n(Persistent DB)", shape=folder, style=filled, fillcolor=white];
+                VolMedia [label="media\n(User Uploads)", shape=folder, style=filled, fillcolor=white];
+                VolStatic [label="static\n(CSS/JS Assets)", shape=folder, style=filled, fillcolor=white];
+                VolBackups [label="backups\n(pg_dump Output)", shape=folder, style=filled, fillcolor=white];
+            }
+            
+            // Docker Network
+            DockerNetwork [label="gymms_network\n(Bridge Network)\nDNS: web, db, nginx", 
+                          shape=ellipse, style=filled, fillcolor=lightcyan];
+        }
+        
+        // Hardware specs
+        HardwareSpecs [label="Hardware Specifications:\n• CPU: BCM2712 ARM Cortex-A76 @ 2.4GHz (4 cores)\n• RAM: 8GB LPDDR4X-4267\n• Storage: 512GB NVMe SSD (450MB/s read)\n• Network: Gigabit Ethernet + Wi-Fi 6\n• Power: 10W average (3-15W range)", 
+                      shape=note, style=filled, fillcolor="#FFFACD"];
+    }
+    
+    // Monitoring Stack (Optional)
+    subgraph cluster_monitoring {
+        label="Monitoring Stack (Optional)";
+        style=filled;
+        fillcolor="#E6FFE6";
+        fontsize=12;
+        fontname="Arial Bold";
+        
+        Prometheus [label="Prometheus\nMetrics Collection", shape=box, style="rounded,filled", fillcolor=white];
+        Grafana [label="Grafana\nVisualization", shape=box, style="rounded,filled", fillcolor=white];
+        NodeExporter [label="Node Exporter\nSystem Metrics", shape=box, style="rounded,filled", fillcolor=white];
+        PgExporter [label="Postgres Exporter\nDB Metrics", shape=box, style="rounded,filled", fillcolor=white];
+    }
+    
+    // Backup System
+    BackupSystem [label="Automated Backup\nDaily at 2:00 AM\npg_dump → NVMe → USB Drive", 
+                 shape=box, style="rounded,filled", fillcolor=lightgreen];
+    
+    // Connection flows
+    Users -> CFEdge [label="1. HTTPS Request\nhttps://gymms.domain.com", style=bold, color=blue];
+    CFEdge -> DDoS [style=invis];
+    
+    CFEdge -> Cloudflared [label="2. Proxied via Tunnel\n(No inbound ports)", style=bold, color=green];
+    Cloudflared -> Nginx [label="3. Forward to\nlocalhost:80", style=bold, color=green];
+    
+    Nginx -> Gunicorn [label="4. Proxy to\nport 8000", style=bold, color=purple];
+    Gunicorn -> Django [style=bold, color=purple];
+    Django -> PostgreSQL [label="5. SQL Queries\n(Django ORM)", style=bold, color=red];
+    PostgreSQL -> Django [label="6. Result Sets", style=bold, color=red, dir=back];
+    
+    Django -> Users [label="7. HTTP Response\n(HTML/JSON)", style=bold, color=blue, dir=back, constraint=false];
+    
+    // Container networking
+    Nginx -> DockerNetwork [style=dashed, color=gray];
+    Gunicorn -> DockerNetwork [style=dashed, color=gray];
+    PostgreSQL -> DockerNetwork [style=dashed, color=gray];
+    
+    // Volume connections
+    PostgreSQL -> VolPostgres [label="Persist", style=dotted, color=brown];
+    Django -> VolMedia [label="Store", style=dotted, color=brown];
+    Nginx -> VolStatic [label="Serve", style=dotted, color=brown];
+    PostgreSQL -> VolBackups [label="Backup", style=dotted, color=brown];
+    
+    // Monitoring connections
+    NodeExporter -> Prometheus [style=dashed, color=orange];
+    PgExporter -> Prometheus [style=dashed, color=orange];
+    PostgreSQL -> PgExporter [style=dotted, color=orange];
+    Prometheus -> Grafana [style=dashed, color=orange];
+    
+    // Backup connection
+    PostgreSQL -> BackupSystem [label="Daily\npg_dump", style=dotted, color=darkgreen];
+    
+    // Hardware connection
+    DockerNetwork -> HardwareSpecs [style=invis];
+    
+    // Legend
+    subgraph cluster_legend {
+        label="Legend";
+        style=solid;
+        fontsize=10;
+        rank=sink;
+        
+        L1 [label="User Request Flow", style=bold, color=blue, shape=plaintext];
+        L2 [label="Cloudflare Tunnel", style=bold, color=green, shape=plaintext];
+        L3 [label="Application Processing", style=bold, color=purple, shape=plaintext];
+        L4 [label="Database Operations", style=bold, color=red, shape=plaintext];
+        L5 [label="Docker Network", style=dashed, color=gray, shape=plaintext];
+        L6 [label="Volume/Storage", style=dotted, color=brown, shape=plaintext];
+        L7 [label="Monitoring", style=dashed, color=orange, shape=plaintext];
+        
+        L1 -> L2 [style=invis];
+        L2 -> L3 [style=invis];
+        L3 -> L4 [style=invis];
+        L4 -> L5 [style=invis];
+        L5 -> L6 [style=invis];
+        L6 -> L7 [style=invis];
+    }
+    
+    // Notes
+    Note1 [label="Key Benefits:\n• No static IP required\n• No port forwarding\n• Automatic SSL/TLS\n• DDoS protection\n• Global CDN\n• Low cost (free tier)", 
+          shape=note, style=filled, fillcolor=lightyellow];
+    
+    Note2 [label="Cost Analysis:\n• Hardware: ₱12,000-15,000 (one-time)\n• Electricity: ₱150-200/month\n• Domain: ₱500/year\n• Cloudflare: Free tier\n• Total: ~₱300/month", 
+          shape=note, style=filled, fillcolor=lightgreen];
+    
+    CFEdge -> Note1 [style=invis];
+    HardwareSpecs -> Note2 [style=invis];
+}

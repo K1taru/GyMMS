@@ -1,0 +1,205 @@
+// Database Schema Entity-Relationship Diagram for GyMMS
+// Figure 3.3: Database Schema with 9 Tables and Relationships
+// To generate: dot -Tpng database_schema_diagram.dot -o database_schema_diagram.png
+// Or use: dot -Tsvg database_schema_diagram.dot -o database_schema_diagram.svg
+
+digraph DatabaseSchema {
+    // Graph settings
+    rankdir=TB;
+    splines=polyline;
+    nodesep=0.8;
+    ranksep=1.2;
+    
+    // Style definitions
+    node [shape=record, fontname="Arial", fontsize=9];
+    edge [fontname="Arial", fontsize=8];
+    
+    // StaffUser Table
+    StaffUser [label="{<table>StaffUser|
+        <pk>id (PK, AutoField)\l|
+        email (EmailField, UNIQUE)\l|
+        password (CharField, hashed)\l|
+        first_name (CharField)\l|
+        last_name (CharField)\l|
+        role (CharField: OWNER/STAFF)\l|
+        profile_picture (ImageField)\l|
+        is_active (BooleanField)\l|
+        is_deleted (BooleanField)\l|
+        deleted_at (DateTimeField)\l|
+        date_joined (DateTimeField)\l|
+        last_login (DateTimeField)\l
+    }", style=filled, fillcolor=lightblue];
+    
+    // Member Table
+    Member [label="{<table>Member|
+        <pk>id (PK, AutoField)\l|
+        member_id (CharField, UNIQUE, 10 chars)\l|
+        full_name (CharField, 100 chars)\l|
+        sex (CharField: Male/Female)\l|
+        phone_number (CharField, 15 chars)\l|
+        email (EmailField, optional)\l|
+        address (TextField)\l|
+        emergency_contact_name (CharField)\l|
+        emergency_phone (CharField)\l|
+        photo (ImageField, optional)\l|
+        start_date (DateField)\l|
+        end_date (DateField)\l|
+        date_created (DateTimeField)\l|
+        date_updated (DateTimeField)\l|
+        is_deleted (BooleanField)\l|
+        deleted_at (DateTimeField)\l|
+        <fk>created_by (FK → StaffUser)\l|
+        <fk>updated_by (FK → StaffUser)\l
+    }", style=filled, fillcolor=lightgreen];
+    
+    // MembershipConfig Table
+    MembershipConfig [label="{<table>MembershipConfig|
+        <pk>id (PK, AutoField)\l|
+        default_duration_days (IntegerField)\l|
+        allow_prorated_pricing (BooleanField)\l|
+        renewal_reminder_days (IntegerField)\l|
+        grace_period_days (IntegerField)\l|
+        updated_at (DateTimeField)\l|
+        <fk>updated_by (FK → StaffUser)\l
+    }", style=filled, fillcolor=lightyellow];
+    
+    // MembershipPricing Table
+    MembershipPricing [label="{<table>MembershipPricing|
+        <pk>id (PK, AutoField)\l|
+        name (CharField: 1 Month, 3 Months...)\l|
+        duration_days (IntegerField)\l|
+        price (DecimalField, 10,2)\l|
+        is_active (BooleanField)\l|
+        display_order (IntegerField)\l|
+        created_at (DateTimeField)\l|
+        updated_at (DateTimeField)\l|
+        <fk>created_by (FK → StaffUser)\l
+    }", style=filled, fillcolor=lightyellow];
+    
+    // Payment Table
+    Payment [label="{<table>Payment|
+        <pk>id (PK, AutoField)\l|
+        transaction_id (UUIDField, UNIQUE)\l|
+        <fk>member (FK → Member)\l|
+        amount (DecimalField, 10,2)\l|
+        payment_method (CharField: Cash, GCash...)\l|
+        transaction_type (CharField)\l|
+        reference_number (CharField, optional)\l|
+        remarks (TextField, optional)\l|
+        status (CharField: Completed, Pending...)\l|
+        payment_date (DateField)\l|
+        date_created (DateTimeField)\l|
+        previous_end_date (DateField)\l|
+        new_end_date (DateField)\l|
+        <fk>membership_type (FK → MembershipPricing)\l|
+        <fk>processed_by_admin (FK → StaffUser)\l
+    }", style=filled, fillcolor=lightcoral];
+    
+    // GymCheckIn Table
+    GymCheckIn [label="{<table>GymCheckIn|
+        <pk>id (PK, AutoField)\l|
+        <fk>member (FK → Member)\l|
+        check_in_time (DateTimeField)\l|
+        check_out_time (DateTimeField, nullable)\l|
+        check_in_date (DateField)\l|
+        session_duration_minutes (IntegerField)\l|
+        <fk>checked_in_by (FK → StaffUser)\l|
+        <fk>checked_out_by (FK → StaffUser, nullable)\l
+    }", style=filled, fillcolor=lightcyan];
+    
+    // DashboardStats Table (Materialized View)
+    DashboardStats [label="{<table>DashboardStats|
+        <pk>id (PK, AutoField)\l|
+        stat_date (DateField)\l|
+        total_members (IntegerField)\l|
+        active_members (IntegerField)\l|
+        expired_members (IntegerField)\l|
+        expiring_soon (IntegerField)\l|
+        new_members_month (IntegerField)\l|
+        daily_checkins (IntegerField)\l|
+        monthly_checkins (IntegerField)\l|
+        currently_active (IntegerField)\l|
+        daily_revenue (DecimalField, 10,2)\l|
+        monthly_revenue (DecimalField, 10,2)\l|
+        computed_at (DateTimeField)\l
+    }", style=filled, fillcolor=wheat];
+    
+    // PaymentSummary Table (Aggregated View)
+    PaymentSummary [label="{<table>PaymentSummary|
+        <pk>id (PK, AutoField)\l|
+        summary_date (DateField)\l|
+        total_payments (IntegerField)\l|
+        total_amount (DecimalField, 10,2)\l|
+        payment_method_breakdown (JSONField)\l|
+        transaction_type_breakdown (JSONField)\l|
+        computed_at (DateTimeField)\l
+    }", style=filled, fillcolor=wheat];
+    
+    // ActiveMemberSnapshot Table (Audit Trail)
+    ActiveMemberSnapshot [label="{<table>ActiveMemberSnapshot|
+        <pk>id (PK, AutoField)\l|
+        snapshot_date (DateField)\l|
+        <fk>member (FK → Member)\l|
+        subscription_status (CharField)\l|
+        end_date (DateField)\l|
+        days_until_expiry (IntegerField)\l|
+        total_payments (DecimalField, 10,2)\l|
+        total_checkins (IntegerField)\l|
+        created_at (DateTimeField)\l
+    }", style=filled, fillcolor=wheat];
+    
+    // Relationships with cardinality
+    StaffUser:pk -> Member:fk [label="1:N (created_by)", arrowhead=crow, arrowsize=0.8];
+    StaffUser:pk -> Member:fk [label="1:N (updated_by)", arrowhead=crow, arrowsize=0.8, style=dashed];
+    
+    StaffUser:pk -> MembershipConfig:fk [label="1:N", arrowhead=crow, arrowsize=0.8];
+    StaffUser:pk -> MembershipPricing:fk [label="1:N", arrowhead=crow, arrowsize=0.8];
+    
+    Member:pk -> Payment:fk [label="1:N", arrowhead=crow, arrowsize=0.8, color=red, penwidth=2];
+    Member:pk -> GymCheckIn:fk [label="1:N", arrowhead=crow, arrowsize=0.8, color=blue, penwidth=2];
+    Member:pk -> ActiveMemberSnapshot:fk [label="1:N", arrowhead=crow, arrowsize=0.8];
+    
+    MembershipPricing:pk -> Payment:fk [label="1:N", arrowhead=crow, arrowsize=0.8];
+    StaffUser:pk -> Payment:fk [label="1:N (processed_by)", arrowhead=crow, arrowsize=0.8];
+    
+    StaffUser:pk -> GymCheckIn:fk [label="1:N (checked_in_by)", arrowhead=crow, arrowsize=0.8];
+    StaffUser:pk -> GymCheckIn:fk [label="1:N (checked_out_by)", arrowhead=crow, arrowsize=0.8, style=dashed];
+    
+    // Indexes (shown as notes)
+    MemberIdx [label="Indexes:\n• member_id (UNIQUE)\n• full_name (BTREE)\n• phone_number (BTREE)\n• email (BTREE)\n• start_date, end_date (BTREE)", 
+              shape=note, style=filled, fillcolor=lightyellow];
+    
+    PaymentIdx [label="Indexes:\n• transaction_id (UNIQUE)\n• member_id (FK, BTREE)\n• payment_date (BTREE)\n• status (BTREE)\n• payment_method (BTREE)", 
+               shape=note, style=filled, fillcolor=lightyellow];
+    
+    CheckInIdx [label="Indexes:\n• member_id (FK, BTREE)\n• check_in_date (BTREE)\n• check_in_time (BTREE)\n• check_out_time (BTREE)", 
+               shape=note, style=filled, fillcolor=lightyellow];
+    
+    Member -> MemberIdx [style=dotted, arrowhead=none];
+    Payment -> PaymentIdx [style=dotted, arrowhead=none];
+    GymCheckIn -> CheckInIdx [style=dotted, arrowhead=none];
+    
+    // Constraints (shown as notes)
+    Constraints [label="Key Constraints:\n• Soft Delete: is_deleted flag preserves history\n• Data Preservation: Payment records never deleted\n• Referential Integrity: CASCADE on related records\n• Check-in Limit: Max 3 per member per day (app logic)\n• UUID Transactions: UUIDv4 for payment IDs", 
+                shape=note, style=filled, fillcolor=lightcoral];
+    
+    // Legend
+    subgraph cluster_legend {
+        label="Legend";
+        style=solid;
+        fontsize=10;
+        
+        L1 [label="Core Tables", shape=record, style=filled, fillcolor=lightgreen];
+        L2 [label="Configuration Tables", shape=record, style=filled, fillcolor=lightyellow];
+        L3 [label="Transaction Tables", shape=record, style=filled, fillcolor=lightcoral];
+        L4 [label="Aggregate/Computed Tables", shape=record, style=filled, fillcolor=wheat];
+        L5 [label="1:N Relationship", shape=plaintext];
+        L6 [label="Critical Path", style=bold, color=red, shape=plaintext];
+        
+        L1 -> L2 [style=invis];
+        L2 -> L3 [style=invis];
+        L3 -> L4 [style=invis];
+        L4 -> L5 [style=invis];
+        L5 -> L6 [label="1:N", arrowhead=crow, style=invis];
+    }
+}

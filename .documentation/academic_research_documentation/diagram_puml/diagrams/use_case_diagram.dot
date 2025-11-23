@@ -1,0 +1,113 @@
+// Use Case Diagram for Gym Membership Management System (GyMMS)
+// Figure 3.1: Use Case Diagram
+// To generate: dot -Tpng use_case_diagram.dot -o use_case_diagram.png
+// Or use: dot -Tsvg use_case_diagram.dot -o use_case_diagram.svg
+
+digraph UseCaseDiagram {
+    // Graph settings
+    rankdir=LR;
+    splines=ortho;
+    nodesep=1.0;
+    ranksep=1.5;
+    
+    // Style definitions
+    node [shape=box, style=rounded, fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=9];
+    
+    // Define actors (stick figures represented as ellipses with special labels)
+    subgraph cluster_actors {
+        label="Actors";
+        style=invis;
+        
+        Owner [shape=ellipse, label="Owner", style=filled, fillcolor=lightblue];
+        Staff [shape=ellipse, label="Staff", style=filled, fillcolor=lightblue];
+        Member [shape=ellipse, label="Member\n(Implicit)", style=filled, fillcolor=lightgray];
+    }
+    
+    // Define system boundary
+    subgraph cluster_system {
+        label="Gym Membership Management System";
+        style=dashed;
+        color=black;
+        fontsize=12;
+        
+        // Primary Use Cases
+        UC1 [label="Manage\nAuthentication", shape=ellipse, style=filled, fillcolor=lightyellow];
+        UC2 [label="Register\nNew Member", shape=ellipse, style=filled, fillcolor=lightyellow];
+        UC3 [label="Process\nPayment", shape=ellipse, style=filled, fillcolor=lightyellow];
+        UC4 [label="Record\nCheck-in", shape=ellipse, style=filled, fillcolor=lightyellow];
+        UC5 [label="Record\nCheck-out", shape=ellipse, style=filled, fillcolor=lightyellow];
+        UC6 [label="View\nDashboard", shape=ellipse, style=filled, fillcolor=lightyellow];
+        UC7 [label="Search\nMember", shape=ellipse, style=filled, fillcolor=lightyellow];
+        UC8 [label="Edit Member\nProfile", shape=ellipse, style=filled, fillcolor=lightyellow];
+        UC9 [label="View Payment\nHistory", shape=ellipse, style=filled, fillcolor=lightyellow];
+        UC10 [label="View Analytics\nReports", shape=ellipse, style=filled, fillcolor=lightyellow];
+        
+        // Admin-only Use Cases
+        UC11 [label="Manage Staff\nAccounts", shape=ellipse, style=filled, fillcolor=lightcoral];
+        UC12 [label="Configure\nPricing", shape=ellipse, style=filled, fillcolor=lightcoral];
+        UC13 [label="Soft-delete\nMember", shape=ellipse, style=filled, fillcolor=lightcoral];
+        UC14 [label="View Audit\nLogs", shape=ellipse, style=filled, fillcolor=lightcoral];
+        
+        // Extended/Included Use Cases
+        UC15 [label="Validate\nMembership", shape=ellipse, style=filled, fillcolor=lightgreen];
+        UC16 [label="Calculate\nSubscription", shape=ellipse, style=filled, fillcolor=lightgreen];
+        UC17 [label="Generate\nTransaction ID", shape=ellipse, style=filled, fillcolor=lightgreen];
+        UC18 [label="Send\nNotification", shape=ellipse, style=filled, fillcolor=lightgreen];
+    }
+    
+    // Actor to Use Case connections - Staff capabilities
+    Staff -> UC1 [label="login"];
+    Staff -> UC2 [label="registers"];
+    Staff -> UC3 [label="processes"];
+    Staff -> UC4 [label="records"];
+    Staff -> UC5 [label="records"];
+    Staff -> UC6 [label="views"];
+    Staff -> UC7 [label="searches"];
+    Staff -> UC8 [label="edits"];
+    Staff -> UC9 [label="views"];
+    
+    // Actor to Use Case connections - Owner capabilities (inherits Staff + admin)
+    Owner -> UC1 [label="login", style=dashed];
+    Owner -> UC2 [style=dashed];
+    Owner -> UC3 [style=dashed];
+    Owner -> UC4 [style=dashed];
+    Owner -> UC5 [style=dashed];
+    Owner -> UC6 [label="views"];
+    Owner -> UC7 [style=dashed];
+    Owner -> UC8 [style=dashed];
+    Owner -> UC9 [style=dashed];
+    Owner -> UC10 [label="views"];
+    Owner -> UC11 [label="manages"];
+    Owner -> UC12 [label="configures"];
+    Owner -> UC13 [label="deletes"];
+    Owner -> UC14 [label="views"];
+    
+    // Member implicit interactions (system validates against them)
+    Member -> UC4 [label="arrives at", style=dotted];
+    Member -> UC5 [label="leaves", style=dotted];
+    
+    // Include relationships (mandatory sub-functions)
+    UC4 -> UC15 [label="<<include>>", style=dashed, arrowhead=open];
+    UC3 -> UC16 [label="<<include>>", style=dashed, arrowhead=open];
+    UC3 -> UC17 [label="<<include>>", style=dashed, arrowhead=open];
+    
+    // Extend relationships (optional additions)
+    UC18 -> UC3 [label="<<extend>>", style=dashed, arrowhead=open, dir=back];
+    UC18 -> UC4 [label="<<extend>>", style=dashed, arrowhead=open, dir=back];
+    UC18 -> UC2 [label="<<extend>>", style=dashed, arrowhead=open, dir=back];
+    
+    // Legend
+    subgraph cluster_legend {
+        label="Legend";
+        style=solid;
+        fontsize=10;
+        
+        L1 [label="Staff Use Case", shape=ellipse, style=filled, fillcolor=lightyellow];
+        L2 [label="Owner Only", shape=ellipse, style=filled, fillcolor=lightcoral];
+        L3 [label="Included/Extended", shape=ellipse, style=filled, fillcolor=lightgreen];
+        
+        L1 -> L2 [style=invis];
+        L2 -> L3 [style=invis];
+    }
+}

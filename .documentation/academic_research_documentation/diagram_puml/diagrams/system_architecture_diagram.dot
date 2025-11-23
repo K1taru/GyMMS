@@ -1,0 +1,224 @@
+// System Architecture Diagram for GyMMS
+// Figure 3.2: Three-Tier System Architecture
+// To generate: dot -Tpng system_architecture_diagram.dot -o system_architecture_diagram.png
+// Or use: dot -Tsvg system_architecture_diagram.dot -o system_architecture_diagram.svg
+
+digraph SystemArchitecture {
+    // Graph settings
+    rankdir=TB;
+    splines=polyline;
+    nodesep=0.8;
+    ranksep=1.2;
+    compound=true;
+    
+    // Style definitions
+    node [fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=9];
+    
+    // Presentation Tier (Client Layer)
+    subgraph cluster_presentation {
+        label="Presentation Tier\n(Client Layer)";
+        style=filled;
+        color=lightblue;
+        fillcolor="#E6F3FF";
+        fontsize=12;
+        fontname="Arial Bold";
+        
+        // Client devices
+        subgraph cluster_devices {
+            label="";
+            style=invis;
+            
+            Desktop [label="Desktop\nBrowser", shape=box, style="rounded,filled", fillcolor=white];
+            Tablet [label="Tablet\nBrowser", shape=box, style="rounded,filled", fillcolor=white];
+            Mobile [label="Mobile\nBrowser", shape=box, style="rounded,filled", fillcolor=white];
+        }
+        
+        // Client technologies
+        ClientTech [label="HTML5 | CSS3 | JavaScript\nResponsive Design (320px-1920px)\nClient-side Validation", 
+                   shape=note, style=filled, fillcolor=lightyellow];
+        
+        Desktop -> ClientTech [style=invis];
+        Tablet -> ClientTech [style=invis];
+        Mobile -> ClientTech [style=invis];
+    }
+    
+    // Application Tier (Business Logic Layer)
+    subgraph cluster_application {
+        label="Application Tier\n(Business Logic Layer)";
+        style=filled;
+        color=lightgreen;
+        fillcolor="#E6FFE6";
+        fontsize=12;
+        fontname="Arial Bold";
+        
+        // Web server
+        WebServer [label="Gunicorn WSGI Server\n3 Workers | 60s Timeout\nPort 8000", 
+                  shape=box, style="rounded,filled", fillcolor=white];
+        
+        // Django framework
+        subgraph cluster_django {
+            label="Django 5.0+ Framework";
+            style=filled;
+            fillcolor="#F0FFF0";
+            
+            // Django layers
+            Templates [label="Template Layer\nHTML Rendering\nContext Processing", shape=folder, style=filled, fillcolor=white];
+            Views [label="View Layer\nRequest Processing\nBusiness Logic", shape=folder, style=filled, fillcolor=white];
+            Models [label="Model Layer\nORM Abstraction\nData Validation", shape=folder, style=filled, fillcolor=white];
+            
+            Templates -> Views [style=invis];
+            Views -> Models [style=invis];
+        }
+        
+        // Django apps (modular structure)
+        subgraph cluster_apps {
+            label="Django Applications (Modular)";
+            style=filled;
+            fillcolor="#F5FFF5";
+            
+            CoreApp [label="Core\n(Auth, Utils)", shape=component, style=filled, fillcolor=white];
+            UsersApp [label="Users\n(Staff Mgmt)", shape=component, style=filled, fillcolor=white];
+            MembersApp [label="Memberships\n(Member CRUD)", shape=component, style=filled, fillcolor=white];
+            PaymentsApp [label="Payments\n(Transactions)", shape=component, style=filled, fillcolor=white];
+            DashboardApp [label="Dashboard\n(Analytics)", shape=component, style=filled, fillcolor=white];
+            MetricsApp [label="Metrics\n(Reports)", shape=component, style=filled, fillcolor=white];
+        }
+        
+        // Middleware
+        Middleware [label="Middleware Layer\nAuthentication | CSRF Protection\nSession Management | Security Headers", 
+                   shape=box, style=filled, fillcolor=lightyellow];
+        
+        WebServer -> Middleware;
+        Middleware -> Templates;
+        Templates -> Views;
+        Views -> Models;
+        Models -> CoreApp [style=invis];
+    }
+    
+    // Data Tier (Persistence Layer)
+    subgraph cluster_data {
+        label="Data Tier\n(Persistence Layer)";
+        style=filled;
+        color=lightcoral;
+        fillcolor="#FFE6E6";
+        fontsize=12;
+        fontname="Arial Bold";
+        
+        // Database
+        PostgreSQL [label="PostgreSQL 16\nRelational Database\nACID Compliance", 
+                   shape=cylinder, style=filled, fillcolor=white];
+        
+        // Database schema
+        subgraph cluster_schema {
+            label="Database Schema (9 Tables)";
+            style=filled;
+            fillcolor="#FFF0F0";
+            
+            TblStaff [label="StaffUser", shape=tab, style=filled, fillcolor=white];
+            TblMember [label="Member", shape=tab, style=filled, fillcolor=white];
+            TblConfig [label="MembershipConfig", shape=tab, style=filled, fillcolor=white];
+            TblPricing [label="MembershipPricing", shape=tab, style=filled, fillcolor=white];
+            TblPayment [label="Payment", shape=tab, style=filled, fillcolor=white];
+            TblCheckin [label="GymCheckIn", shape=tab, style=filled, fillcolor=white];
+            TblDashStats [label="DashboardStats", shape=tab, style=filled, fillcolor=white];
+            TblPaySum [label="PaymentSummary", shape=tab, style=filled, fillcolor=white];
+            TblSnapshot [label="ActiveMemberSnapshot", shape=tab, style=filled, fillcolor=white];
+        }
+        
+        PostgreSQL -> TblStaff [style=invis];
+    }
+    
+    // Infrastructure Layer (Deployment)
+    subgraph cluster_infrastructure {
+        label="Infrastructure Layer\n(Containerization & Deployment)";
+        style=filled;
+        color=mediumpurple;
+        fillcolor="#F0E6FF";
+        fontsize=12;
+        fontname="Arial Bold";
+        
+        Docker [label="Docker Engine\nContainer Orchestration", 
+               shape=box3d, style=filled, fillcolor=white];
+        
+        // Containers
+        subgraph cluster_containers {
+            label="Docker Containers";
+            style=filled;
+            fillcolor="#F5F0FF";
+            
+            WebContainer [label="gymms_web\nDjango + Gunicorn\n2GB RAM | 2 CPU", 
+                         shape=box, style="rounded,filled", fillcolor=white];
+            DBContainer [label="gymms_db\nPostgreSQL 16\n1.5GB RAM | 256MB SHM", 
+                        shape=box, style="rounded,filled", fillcolor=white];
+            NginxContainer [label="gymms_nginx\nReverse Proxy\n256MB RAM", 
+                           shape=box, style="rounded,filled", fillcolor=white];
+        }
+        
+        // Volumes and Network
+        Volumes [label="Docker Volumes\npostgres_data (persistent)\nmedia (uploads)\nstatic (assets)", 
+                shape=folder, style=filled, fillcolor=lightyellow];
+        Network [label="gymms_network\nBridge Network\nDNS Service Discovery", 
+                shape=diamond, style=filled, fillcolor=lightcyan];
+        
+        Docker -> WebContainer;
+        Docker -> DBContainer;
+        Docker -> NginxContainer;
+        WebContainer -> Network;
+        DBContainer -> Network;
+        NginxContainer -> Network;
+        DBContainer -> Volumes;
+    }
+    
+    // Hardware Layer (Raspberry Pi)
+    subgraph cluster_hardware {
+        label="Hardware Platform";
+        style=filled;
+        color=orange;
+        fillcolor="#FFF5E6";
+        fontsize=12;
+        fontname="Arial Bold";
+        
+        RaspberryPi [label="Raspberry Pi 5 (8GB)\nARM Cortex-A76 @ 2.4GHz\n512GB NVMe SSD\nGigabit Ethernet", 
+                    shape=box3d, style=filled, fillcolor=white];
+        
+        CloudflareTunnel [label="Cloudflare Tunnel\nSecure Remote Access\nAutomatic SSL/TLS\nDDoS Protection", 
+                         shape=box, style="rounded,filled", fillcolor=lightcyan];
+    }
+    
+    // Connections between tiers
+    Desktop -> WebServer [label="HTTPS\nRequests", style=bold, color=blue];
+    Tablet -> WebServer [label="HTTPS\nRequests", style=bold, color=blue];
+    Mobile -> WebServer [label="HTTPS\nRequests", style=bold, color=blue];
+    
+    WebServer -> Django [lhead=cluster_django, label="WSGI\nProtocol", style=bold, color=green];
+    
+    Models -> PostgreSQL [label="SQL Queries\n(ORM)", style=bold, color=red];
+    PostgreSQL -> Models [label="Result Sets", style=bold, color=red, dir=back];
+    
+    WebContainer -> DBContainer [label="Port 5432\nPostgreSQL Protocol", style=dashed, color=purple];
+    NginxContainer -> WebContainer [label="Port 8000\nHTTP Proxy", style=dashed, color=purple];
+    
+    NginxContainer -> RaspberryPi [lhead=cluster_hardware, label="Deployed on", style=dotted];
+    RaspberryPi -> CloudflareTunnel [label="Outbound\nTunnel", style=bold, color=orange];
+    CloudflareTunnel -> Desktop [label="Public\nAccess", style=bold, color=orange, dir=back, constraint=false];
+    
+    // Legend
+    subgraph cluster_legend {
+        label="Legend";
+        style=solid;
+        fontsize=10;
+        rank=sink;
+        
+        L1 [label="Client Request Flow", style=bold, color=blue, shape=plaintext];
+        L2 [label="Application Processing", style=bold, color=green, shape=plaintext];
+        L3 [label="Database Communication", style=bold, color=red, shape=plaintext];
+        L4 [label="Container Network", style=dashed, color=purple, shape=plaintext];
+        L5 [label="Deployment Infrastructure", style=bold, color=orange, shape=plaintext];
+        
+        L1 -> L2 [style=invis];
+        L2 -> L3 [style=invis];
+        L3 -> L4 [style=invis];
+        L4 -> L5 [style=invis];
+    }
+}

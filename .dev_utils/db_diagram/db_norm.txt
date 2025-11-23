@@ -1,0 +1,351 @@
+// Copy and paste this entire code to https://dbdiagram.io/d
+// GYMMS - NORMALIZED & OPTIMIZED Database Schema
+
+// ============================================
+// 1. AUTHENTICATION & STAFF
+// ============================================
+
+Table StaffUser {
+  id integer [pk, increment]
+  username varchar(150) [unique, not null]
+  name varchar(255) [null]
+  email varchar(254) [not null]
+  password varchar(128) [not null]
+  phone_number varchar(20) [null]
+  profile_image varchar(100) [null]
+  role varchar(10) [default: 'Staff', not null]
+  created_by_id integer [null]
+  is_email_verified boolean [default: false]
+  is_phone_verified boolean [default: false]
+  last_password_change timestamp [null]
+  is_active boolean [default: true]
+  is_staff boolean [default: false]
+  is_superuser boolean [default: false]
+  date_joined timestamp [not null]
+  last_login timestamp [null]
+  
+  indexes {
+    (username) [unique]
+    (email)
+    (role)
+  }
+}
+
+// ============================================
+// 2. MEMBER MANAGEMENT
+// ============================================
+
+Table Member {
+  id integer [pk, increment]
+  member_id varchar(10) [unique, not null]
+  name varchar(150) [not null]
+  email varchar(254) [null]
+  phone_number varchar(20) [not null]
+  sex varchar(7) [null]
+  address text [not null]
+  photo varchar(100) [null]
+  emergency_contact varchar(100) [not null]
+  emergency_phone varchar(20) [not null]
+  start_date date [not null]
+  end_date date [not null]
+  membership_fee decimal(10,2) [not null]
+  is_active boolean [default: true]
+  created_by_id integer [null]
+  date_created timestamp [not null]
+  is_deleted boolean [default: false]
+  deleted_at timestamp [null]
+  
+  indexes {
+    (member_id) [unique]
+    (is_active)
+    (end_date)
+    (date_created)
+    (is_deleted, end_date)
+    (is_deleted, date_created)
+    (phone_number)
+  }
+}
+
+Table MemberTag {
+  id integer [pk, increment]
+  name varchar(50) [unique, not null]
+  color varchar(7) [default: '#3B82F6']
+  description text
+  is_active boolean [default: true]
+  created_at timestamp [not null]
+}
+
+Table MemberTagAssignment {
+  id bigint [pk, increment]
+  member_id integer [not null]
+  tag_id integer [not null]
+  assigned_at timestamp [not null]
+  assigned_by_id integer [null]
+  
+  indexes {
+    (member_id, tag_id) [unique]
+    (tag_id, assigned_at)
+  }
+}
+
+Table MemberContact {
+  id bigint [pk, increment]
+  member_id integer [not null]
+  contact_type varchar(20) [not null]
+  method varchar(20) [not null]
+  subject varchar(200)
+  message text [not null]
+  sent_at timestamp [not null]
+  sent_by_id integer [null]
+  status varchar(20) [default: 'SENT']
+  response_received timestamp [null]
+  response_text text
+  
+  indexes {
+    (member_id, sent_at)
+    (contact_type, status)
+  }
+}
+
+// ============================================
+// 3. PRICING & CONFIGURATION
+// ============================================
+
+Table MembershipPricing {
+  id integer [pk, increment]
+  duration_days integer [not null]
+  duration_label varchar(50) [not null]
+  price decimal(10,2) [not null]
+  is_active boolean [default: true]
+  last_modified timestamp [not null]
+  
+  indexes {
+    (duration_days)
+    (is_active)
+  }
+}
+
+Table MembershipPricingHistory {
+  id bigint [pk, increment]
+  pricing_id integer [not null]
+  duration_days integer [not null]
+  duration_label varchar(50) [not null]
+  old_price decimal(10,2) [not null]
+  new_price decimal(10,2) [not null]
+  changed_at timestamp [not null]
+  changed_by_id integer [null]
+  reason text
+  
+  indexes {
+    (pricing_id, changed_at)
+  }
+}
+
+Table PaymentMethod {
+  id integer [pk, increment]
+  code varchar(20) [unique, not null]
+  name varchar(50) [not null]
+  requires_reference boolean [default: false]
+  processing_fee_percent decimal(5,2) [default: 0]
+  is_active boolean [default: true]
+  display_order integer [default: 0]
+  icon_path varchar(100)
+  created_at timestamp [not null]
+}
+
+// ============================================
+// 4. PAYMENT PROCESSING
+// ============================================
+
+Table Payment {
+  id uuid [pk]
+  member_fk_id integer [null]
+  stored_member_id varchar(10) [default: 'UNKNOWN', not null]
+  stored_member_name varchar(150) [default: 'Unknown Member', not null]
+  membership_plan_id integer [null]
+  stored_plan_label varchar(50) [default: 'Unknown Plan', not null]
+  stored_duration_days integer [default: 0, not null]
+  amount decimal(10,2) [default: 0.00, not null]
+  payment_method_id integer [not null]
+  stored_payment_method_name varchar(50) [not null]
+  reference_number varchar(100) [null]
+  payment_date timestamp [not null]
+  status varchar(20) [default: 'Completed', not null]
+  processed_by_id integer [null]
+  remarks text [null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  
+  indexes {
+    (stored_member_id)
+    (payment_date)
+    (status)
+    (status, payment_date)
+    (member_fk_id, payment_date)
+    (payment_date, amount)
+  }
+}
+
+Table PaymentTransaction {
+  id uuid [pk]
+  payment_id uuid [null]
+  member_id integer [null]
+  amount decimal(10,2) [not null]
+  payment_method_id integer [not null]
+  reference_number varchar(100)
+  status varchar(20) [not null]
+  error_message text
+  gateway_response json [null]
+  initiated_at timestamp [not null]
+  completed_at timestamp [null]
+  initiated_by_id integer [null]
+  
+  indexes {
+    (member_id, initiated_at)
+    (status, initiated_at)
+  }
+}
+
+Table PaymentSummary {
+  id integer [pk, increment]
+  month date [unique, not null]
+  total_income decimal(10,2) [not null]
+  total_transactions integer [not null]
+  generated_at timestamp [not null]
+  
+  indexes {
+    (month) [unique]
+  }
+}
+
+// ============================================
+// 5. CHECK-IN TRACKING
+// ============================================
+
+Table GymCheckIn {
+  id integer [pk, increment]
+  member_id integer [not null]
+  check_in_time timestamp [not null]
+  check_out_time timestamp [null]
+  date date [not null]
+  duration_minutes integer [null]
+  session_type varchar(20) [default: 'REGULAR']
+  checked_in_by_id integer [null]
+  checked_out_by_id integer [null]
+  notes text
+  
+  indexes {
+    (date)
+    (member_id, date)
+    (date, check_in_time)
+    (member_id, check_in_time)
+    (date, duration_minutes)
+    (session_type, date)
+  }
+}
+
+// ============================================
+// 6. ANALYTICS & REPORTING
+// ============================================
+
+Table DashboardStats {
+  id integer [pk, increment]
+  date date [unique, not null]
+  daily_walk_ins integer [default: 0]
+  total_check_ins integer [default: 0]
+  total_revenue decimal(12,2) [default: 0.00]
+  active_members integer [default: 0]
+  new_members integer [default: 0]
+  last_updated timestamp [not null]
+  
+  indexes {
+    (date) [unique]
+  }
+}
+
+Table ActiveMemberSnapshot {
+  id integer [pk, increment]
+  date date [unique, not null]
+  active_count integer [default: 0]
+  total_members integer [default: 0]
+  new_members_today integer [default: 0]
+  expired_today integer [default: 0]
+  total_revenue_today decimal(12,2) [default: 0.00]
+  check_ins_today integer [default: 0]
+  created_at timestamp [not null]
+  
+  indexes {
+    (date) [unique]
+  }
+}
+
+// ============================================
+// 7. AUDIT & SYSTEM
+// ============================================
+
+Table AuditLog {
+  id bigint [pk, increment]
+  timestamp timestamp [not null]
+  user_id integer [null]
+  action varchar(50) [not null]
+  model_name varchar(100) [not null]
+  object_id varchar(100) [not null]
+  changes json [null]
+  ip_address varchar(45) [null]
+  user_agent text [null]
+  
+  indexes {
+    (timestamp)
+    (user_id, timestamp)
+    (model_name, object_id)
+    (action, timestamp)
+  }
+}
+
+Table SystemConfig {
+  key varchar(100) [pk]
+  value text [not null]
+  value_type varchar(20) [default: 'string']
+  description text
+  is_editable boolean [default: true]
+  last_modified timestamp [not null]
+  modified_by_id integer [null]
+}
+
+// ============================================
+// RELATIONSHIPS
+// ============================================
+
+// Staff Management
+Ref: StaffUser.created_by_id > StaffUser.id
+
+// Member Management
+Ref: Member.created_by_id > StaffUser.id
+Ref: MemberTagAssignment.member_id > Member.id
+Ref: MemberTagAssignment.tag_id > MemberTag.id
+Ref: MemberTagAssignment.assigned_by_id > StaffUser.id
+Ref: MemberContact.member_id > Member.id
+Ref: MemberContact.sent_by_id > StaffUser.id
+
+// Pricing
+Ref: MembershipPricingHistory.pricing_id > MembershipPricing.id
+Ref: MembershipPricingHistory.changed_by_id > StaffUser.id
+
+// Payments
+Ref: Payment.member_fk_id > Member.id
+Ref: Payment.membership_plan_id > MembershipPricing.id
+Ref: Payment.payment_method_id > PaymentMethod.id
+Ref: Payment.processed_by_id > StaffUser.id
+Ref: PaymentTransaction.payment_id > Payment.id
+Ref: PaymentTransaction.member_id > Member.id
+Ref: PaymentTransaction.payment_method_id > PaymentMethod.id
+Ref: PaymentTransaction.initiated_by_id > StaffUser.id
+
+// Check-ins
+Ref: GymCheckIn.member_id > Member.id
+Ref: GymCheckIn.checked_in_by_id > StaffUser.id
+Ref: GymCheckIn.checked_out_by_id > StaffUser.id
+
+// Audit & System
+Ref: AuditLog.user_id > StaffUser.id
+Ref: SystemConfig.modified_by_id > StaffUser.id

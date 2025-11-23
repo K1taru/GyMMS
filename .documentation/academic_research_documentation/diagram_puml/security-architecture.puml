@@ -1,0 +1,151 @@
+@startuml
+title Multi-Layered Security Architecture
+
+skinparam backgroundColor white
+skinparam padding 5
+skinparam nodesep 40
+skinparam ranksep 50
+top to bottom direction
+
+' User/Client Layer
+actor "User/Client" as user #FFE0B2
+
+' Security Layers
+package "Layer 1: Network Security" as layer1 #E3F2FD {
+  rectangle "Cloudflare WAF" as waf #90CAF9
+  rectangle "DDoS Protection" as ddos #90CAF9
+  rectangle "TLS 1.3 Encryption" as tls #90CAF9
+  note right of layer1
+    - Zero Trust Network
+    - Origin IP Hidden
+    - Rate Limiting
+  end note
+}
+
+package "Layer 2: Application Security" as layer2 #F3E5F5 {
+  rectangle "Security Headers" as headers #CE93D8 {
+    note right
+      X-Frame-Options: DENY
+      X-Content-Type-Options: nosniff
+      CSP, HSTS, XSS-Protection
+    end note
+  }
+  rectangle "CSRF Protection" as csrf #CE93D8
+  rectangle "Session Management" as session #CE93D8 {
+    note right
+      30-min timeout
+      HTTP-only cookies
+      Secure flag
+    end note
+  }
+}
+
+package "Layer 3: Authentication & Authorization" as layer3 #FFF9C4 {
+  rectangle "Django Auth System" as auth #FFF176 {
+    note right
+      bcrypt hashing
+      Work factor: 12
+    end note
+  }
+  rectangle "Role-Based Access\nControl (RBAC)" as rbac #FFF176 {
+    note right
+      Owner vs Staff
+      Permission Matrix
+    end note
+  }
+  rectangle "Failed Login\nProtection" as failauth #FFF176 {
+    note right
+      5 attempts / 15 min
+      Account lockout
+    end note
+  }
+}
+
+package "Layer 4: Input Validation" as layer4 #C8E6C9 {
+  rectangle "Client-Side\nValidation" as clientval #81C784 {
+    note right
+      HTML5 attributes
+      JavaScript validation
+    end note
+  }
+  rectangle "Django Form\nValidation" as formval #81C784
+  rectangle "Model\nValidation" as modelval #81C784
+  rectangle "Database\nConstraints" as dbconstraint #81C784 {
+    note right
+      Foreign keys
+      Check constraints
+      Unique constraints
+    end note
+  }
+}
+
+package "Layer 5: Data Protection" as layer5 #FFCCBC {
+  rectangle "SQL Injection\nPrevention" as sqlinj #FF8A65 {
+    note right
+      Parameterized queries
+      Django ORM
+    end note
+  }
+  rectangle "XSS Prevention" as xss #FF8A65 {
+    note right
+      Auto HTML escaping
+      DOMPurify
+    end note
+  }
+  rectangle "Password Hashing" as passhash #FF8A65 {
+    note right
+      bcrypt + salt
+      No plaintext storage
+    end note
+  }
+  rectangle "Data Encryption" as encryption #FF8A65 {
+    note right
+      In-transit: TLS 1.3
+      At-rest: PostgreSQL TDE
+    end note
+  }
+}
+
+package "Layer 6: Audit & Monitoring" as layer6 #E0E0E0 {
+  rectangle "Audit Logging" as audit #BDBDBD {
+    note right
+      User attribution
+      Timestamp tracking
+      Change history
+    end note
+  }
+  rectangle "Security Monitoring" as monitoring #BDBDBD {
+    note right
+      Failed login attempts
+      Suspicious activities
+      Prometheus alerts
+    end note
+  }
+}
+
+' Connections - Flow from user through layers
+user --> waf
+waf --> ddos
+ddos --> tls
+tls --> headers
+headers --> csrf
+csrf --> session
+session --> auth
+auth --> rbac
+rbac --> failauth
+failauth --> clientval
+clientval --> formval
+formval --> modelval
+modelval --> dbconstraint
+dbconstraint --> sqlinj
+sqlinj --> xss
+xss --> passhash
+passhash --> encryption
+encryption --> audit
+audit --> monitoring
+
+' Database at the end
+database "PostgreSQL\nSecure Database" as db #4CAF50
+monitoring --> db
+
+@enduml
