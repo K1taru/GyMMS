@@ -1,90 +1,152 @@
 GyMMS/
-├─ .venv/                      # Python virtual environment
-|
+├─ .dev_utils/                 # Development utilities and documentation
+│   ├─ .file_structure         # Project file structure reference
+│   └─ .notes                  # Development notes
+│
+├─ .documentation/             # Project documentation
+│   └─ academic_research_documentation/
+│       ├─ I. Introduction.md
+│       ├─ II. Review of Related Literature.md
+│       ├─ III. Methodology.md
+│       ├─ IV. Data Presentation.md
+│       ├─ V. Data Analysis & Interpretation.md
+│       ├─ VI. Summary of Findings.md
+│       └─ X. Conclusions.md
+│
 ├─ config/                     # Django project configuration
 │   ├─ __pycache__/
 │   ├─ __init__.py
-│   ├─ asgi.py
+│   ├─ asgi.py                 # ASGI configuration
 │   ├─ settings.py             # Main Django settings
 │   ├─ urls.py                 # Project-level routes
-│   └─ wsgi.py
+│   └─ wsgi.py                 # WSGI configuration
 │
-├─ core/                       # Reusable utilities, helpers, custom middlewares
+├─ core/                       # Core utilities, helpers, and shared components
+│   ├─ __pycache__/
+│   ├─ management/
+│   │   ├─ __init__.py
+│   │   └─ commands/           # Custom Django management commands
+│   ├─ migrations/
+│   │   └─ __init__.py
+│   ├─ static/core/
+│   ├─ templates/core/
 │   ├─ __init__.py
+│   ├─ admin.py
+│   ├─ apps.py
 │   ├─ models.py               # Shared abstract models
-│   ├─ payments.py             # Common payment helpers (still optional)
-│   ├─ tasks.py                # Celery tasks / background jobs
-│   └─ utils.py                # Helper functions
+│   ├─ tests.py
+│   ├─ urls.py
+│   └─ views.py
 │
-├─ dashboard/                  # Main client-facing dashboard
+├─ dashboard/                  # Main dashboard and analytics
+│   ├─ __pycache__/
+│   ├─ migrations/
+│   │   ├─ __init__.py
+│   │   ├─ 0001_initial.py
+│   │   ├─ 0002_dashboardstats_dashboard_d_date_891865_idx_and_more.py
+│   │   └─ 0003_alter_dashboardstats_total_revenue.py
+│   ├─ static/dashboard/
 │   ├─ templates/dashboard/
 │   ├─ __init__.py
-│   ├─ urls.py
-│   └─ views.py                # Overview dashboard
-│
-├─ media/                      # Uploaded files (profile pics, receipts, etc.)
-│
-├─ memberships/                # Handles gym membership subscriptions
-│   ├─ templates/memberships/  # HTML for memberships
-│   ├─ __init__.py
 │   ├─ admin.py
 │   ├─ apps.py
-│   ├─ forms.py
-│   ├─ models.py               # Membership model (user, plan, start, end, status)
+│   ├─ check_in_helpers.py     # Check-in/check-out helpers
+│   ├─ models.py               # Dashboard statistics models
 │   ├─ tests.py
-│   ├─ signals.py              # Auto-update subscription end dates, reminders
 │   ├─ urls.py
 │   └─ views.py
 │
-├─ metrics/                    # Sales & revenue dashboards (renamed from analytics)
-│   ├─ templates/metrics/      # Graphs, tables
-│   ├─ __init__.py
-│   ├─ admin.py
-│   ├─ apps.py
-│   ├─ urls.py
-│   ├─ utils.py                # Chart data generators
-│   └─ views.py                # Revenue charts, reports
+├─ media/                      # User-uploaded files
+│   ├─ .gitkeep
+│   ├─ member_photos/          # Member profile photos
+│   └─ staff_photos/           # Staff profile photos
 │
-├─ payments/                   # Online payments module
-│   ├─ templates/payments/     # Payment forms/pages
+├─ memberships/                # Membership management
+│   ├─ __pycache__/
+│   ├─ migrations/
+│   │   ├─ __init__.py
+│   │   ├─ 0001_initial.py
+│   │   ├─ 0002_initial.py
+│   │   ├─ 0003_member_photo.py
+│   │   ├─ 0004_alter_member_photo.py
+│   │   ├─ 0005_alter_member_options_and_more.py
+│   │   └─ 0006_alter_member_emergency_phone_and_more.py
+│   ├─ static/memberships/
+│   ├─ templates/memberships/
+│   ├─ templatetags/           # Custom template filters
+│   │   ├─ __init__.py
+│   │   └─ member_filters.py
 │   ├─ __init__.py
 │   ├─ admin.py
 │   ├─ apps.py
-│   ├─ models.py               # Payment transactions, logs
+│   ├─ forms.py                # Member registration/edit forms
+│   ├─ models.py               # Member and membership plan models
 │   ├─ tests.py
-│   ├─ services/               # API integration layer
-│   │   ├─ gcash.py
-│   │   ├─ gotyme.py
-│   │   ├─ instapay.py
-│   │   └─ paypal.py
 │   ├─ urls.py
 │   └─ views.py
 │
-├─ static/                     # CSS, JS, images
-│   └─ global/                 # API integration layer
-|       ├─ css/
-|       ├─ img/
-|       └─ js/
+├─ metrics/                    # Analytics and reporting
+│   ├─ __pycache__/
+│   ├─ management/
+│   │   ├─ __init__.py
+│   │   └─ commands/           # Metric generation commands
+│   ├─ migrations/
+│   │   ├─ __init__.py
+│   │   ├─ 0001_initial.py
+│   │   ├─ 0002_alter_paymentsummary_options_and_more.py
+│   │   └─ 0003_activemembersnapshot.py
+│   ├─ static/metrics/
+│   ├─ templates/metrics/
+│   ├─ __init__.py
+│   ├─ admin.py
+│   ├─ apps.py
+│   ├─ models.py               # Metrics and snapshot models
+│   ├─ README.md
+│   ├─ tests.py
+│   ├─ urls.py
+│   └─ views.py                # Analytics dashboards and reports
 │
-├─ templates/                  # Global templates (base.html, layouts)
-│   ├─ includes/
-│   └─ base.html
+├─ payments/                   # Payment processing
+│   ├─ __pycache__/
+│   ├─ management/
+│   │   ├─ __init__.py
+│   │   └─ commands/           # Payment-related commands
+│   ├─ migrations/
+│   │   ├─ __init__.py
+│   │   ├─ 0001_initial.py
+│   │   ├─ 0002_initial.py
+│   │   ├─ 0003_membershippricing_alter_payment_options_and_more.py
+│   │   └─ 0004_alter_payment_payment_method.py
+│   ├─ static/payments/
+│   ├─ templates/payments/
+│   ├─ __init__.py
+│   ├─ admin.py
+│   ├─ apps.py
+│   ├─ models.py               # Payment transaction models
+│   ├─ signals.py              # Payment-triggered automation
+│   ├─ tests.py
+│   ├─ urls.py
+│   └─ views.py
 │
-├─ users/                      # Custom User & Authentication
+├─ users/                      # User authentication and management
+│   ├─ __pycache__/
+│   ├─ migrations/             # User model migrations
+│   ├─ static/users/
 │   ├─ templates/users/
 │   ├─ __init__.py
 │   ├─ admin.py
 │   ├─ apps.py
-│   ├─ forms.py
-│   ├─ models.py               # Extend Django user (profile, role, etc.)
+│   ├─ forms.py                # Login, registration forms
+│   ├─ models.py               # Custom user model with roles
 │   ├─ tests.py
 │   ├─ urls.py
 │   └─ views.py
 │
-├─ .env
-├─ .file_structure
-├─ .gitignore
-├─ .notes
-├─ manage.py
-├─ README.md
-└─ requirements.txt
+├─ .dockerignore               # Docker ignore patterns
+├─ .env                        # Environment variables (not in git)
+├─ .gitignore                  # Git ignore patterns
+├─ docker-compose.yml          # Docker Compose configuration
+├─ Dockerfile                  # Docker image definition
+├─ manage.py                   # Django management script
+├─ README.md                   # Project readme
+└─ requirements.txt            # Python dependencies
