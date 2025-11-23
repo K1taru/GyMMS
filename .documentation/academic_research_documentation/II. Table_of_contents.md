@@ -3,7 +3,6 @@ ACKNOWLEDGEMENT
 
 The completion of the Gym Membership Management System (GyMMS) was made possible through the collective support, expertise, and encouragement of many individuals and organizations. I am especially grateful to Mr. Adrian Dave Ignacio, my project adviser, for his technical guidance, constructive feedback, and mentorship, which were instrumental in shaping the system’s architecture and ensuring its robustness. His insights into best practices and careful review of my work greatly enhanced the quality of this project.
 
-I extend my sincere thanks to the Computer Engineering Department and the academic community at the Technological Institute of the Philippines for fostering an environment that emphasizes both theoretical knowledge and practical application. The comprehensive curriculum, access to modern tools, and encouragement for innovation provided the foundation for this project’s success.
 
 I am deeply appreciative of the client gym operator, whose willingness to share operational insights, participate in requirement validation, and provide honest feedback during testing ensured that my solution addressed real-world needs. Their collaboration exemplified the value of academic-industry partnerships.
 

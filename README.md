@@ -130,7 +130,7 @@ GyMMS addresses these challenges by providing a fully-featured, automated member
 - **Docker** - Containerization platform
 - **Docker Compose** - Multi-container orchestration
 
-<img src="https://assets.raspberrypi.com/static/raspberry-pi-logo-46e0bd895c.png" width="100" alt="Raspberry Pi"/>
+<img src="https://www.raspberrypi.com/app/uploads/2022/02/COLOUR-Raspberry-Pi-Symbol-Registered.png" width="100" alt="Raspberry Pi"/>
 
 - **Raspberry Pi 5 (8GB)** - Edge computing hardware
 - **Raspberry Pi OS (64-bit)** - Operating system
@@ -142,7 +142,7 @@ GyMMS addresses these challenges by providing a fully-featured, automated member
 
 ### Monitoring & Analytics
 
-<img src="https://prometheus.io/assets/prometheus_logo_grey.svg" width="100" alt="Prometheus"/>
+<img src="https://cncf-branding.netlify.app/img/projects/prometheus/horizontal/color/prometheus-horizontal-color.png" width="150" alt="Prometheus"/>
 
 - **Prometheus** - Metrics collection and monitoring
 
@@ -173,28 +173,28 @@ GyMMS addresses these challenges by providing a fully-featured, automated member
          │  ┌─────────────────────────────┐  │
          │  │    Docker Environment       │  │
          │  │                             │  │
-         │  │  ┌──────────────────────┐  │  │
-         │  │  │   Django Web App     │  │  │
-         │  │  │    (Gunicorn)        │  │  │
-         │  │  └──────────┬───────────┘  │  │
+         │  │  ┌──────────────────────┐   │  │
+         │  │  │   Django Web App     │   │  │
+         │  │  │    (Gunicorn)        │   │  │
+         │  │  └──────────┬───────────┘   │  │
          │  │             │               │  │
-         │  │  ┌──────────▼───────────┐  │  │
-         │  │  │   PostgreSQL 16      │  │  │
-         │  │  │   (Database)         │  │  │
-         │  │  └──────────────────────┘  │  │
+         │  │  ┌──────────▼───────────┐   │  │
+         │  │  │   PostgreSQL 16      │   │  │
+         │  │  │   (Database)         │   │  │
+         │  │  └──────────────────────┘   │  │
          │  │                             │  │
-         │  │  ┌──────────────────────┐  │  │
-         │  │  │   Prometheus         │  │  │
-         │  │  │   (Monitoring)       │  │  │
-         │  │  └──────────┬───────────┘  │  │
+         │  │  ┌──────────────────────┐   │  │
+         │  │  │   Prometheus         │   │  │
+         │  │  │   (Monitoring)       │   │  │
+         │  │  └──────────┬───────────┘   │  │
          │  │             │               │  │
-         │  │  ┌──────────▼───────────┐  │  │
-         │  │  │   Grafana            │  │  │
-         │  │  │   (Visualization)    │  │  │
-         │  │  └──────────────────────┘  │  │
+         │  │  ┌──────────▼───────────┐   │  │
+         │  │  │   Grafana            │   │  │
+         │  │  │   (Visualization)    │   │  │
+         │  │  └──────────────────────┘   │  │
          │  │                             │  │
          │  └─────────────────────────────┘  │
-         │                                    │
+         │                                   │
          │  ┌─────────────────────────────┐  │
          │  │   Persistent Storage        │  │
          │  │   - PostgreSQL Data         │  │
@@ -688,7 +688,7 @@ GyMMS/
 
 ### Prometheus Monitoring
 
-<img src="https://prometheus.io/assets/prometheus_logo_grey.svg" width="120" alt="Prometheus"/>
+<img src="https://cncf-branding.netlify.app/img/projects/prometheus/horizontal/color/prometheus-horizontal-color.png" width="150" alt="Prometheus"/>
 
 **Role**: System metrics collection and alerting
 
@@ -731,7 +731,7 @@ GyMMS/
 
 ### Raspberry Pi Edge Computing
 
-<img src="https://assets.raspberrypi.com/static/raspberry-pi-logo-46e0bd895c.png" width="120" alt="Raspberry Pi"/>
+<img src="https://www.raspberrypi.com/app/uploads/2022/02/COLOUR-Raspberry-Pi-Symbol-Registered.png" width="120" alt="Raspberry Pi"/>
 
 **Role**: Low-cost, energy-efficient production server
 
