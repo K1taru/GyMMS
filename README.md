@@ -20,6 +20,7 @@ A comprehensive web-based gym membership management system built with Django, de
 - [Configuration](#configuration)
 - [Usage](#usage)
 - [Deployment](#deployment)
+- [PayMongo QR Ph deployment](docs/paymongo.md)
 - [Project Structure](#project-structure)
 - [Services & Integrations](#services--integrations)
 - [Security](#security)
@@ -1010,5 +1011,9 @@ For support, questions, or suggestions:
 ---
 
 **Built with ❤️ for small gym owners who deserve better tools**
+
+## PayMongo QR Ph deployment
+
+Production configuration, webhook setup, rollout and recovery guidance for QR Ph is in [docs/paymongo.md](docs/paymongo.md). Start with `.env.example`; QR checkout remains disabled until the PayMongo account is activated and credentials and webhooks are ready.
 
 

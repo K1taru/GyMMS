@@ -8,8 +8,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const memberInfoCard = document.getElementById('memberInfoCard');
     const paymentForm = document.getElementById('paymentForm');
     const paymentMethodSelect = document.getElementById('payment_method');
-    const referenceSection = document.getElementById('referenceSection');
-    const referenceInput = document.getElementById('reference_number');
     const paymentSearchInput = document.getElementById('paymentSearchInput');
 
     let searchTimeout = null;
@@ -171,24 +169,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ===== PAYMENT METHOD HANDLING =====
     
-    // Digital payment methods that require reference number
-    const digitalMethods = ['GCash', 'Maya', 'GoTyme', 'Bank Transfer', 'PayPal', 'Debit Card', 'Credit Card'];
-    const referenceRequired = document.getElementById('referenceRequired');
-    
     paymentMethodSelect.addEventListener('change', function() {
-        const method = this.value;
-        
-        // Enable/disable reference number field based on payment method
-        if (digitalMethods.includes(method)) {
-            referenceInput.disabled = false;
-            referenceInput.required = true;
-            referenceRequired.style.display = 'inline';
-        } else {
-            referenceInput.disabled = true;
-            referenceInput.required = false;
-            referenceInput.value = '';
-            referenceRequired.style.display = 'none';
+        document.getElementById('submitBtn').textContent = this.value === 'QRPh' ? 'Prepare QR Ph payment' : 'Process Cash Payment';
+    });
+    let cashRequestKey = null;
+    const completedPayments = new Set();
+    window.addEventListener('gymms:payment-completed', function(event) {
+        const attempt = event.detail;
+        if (attempt.payment && !completedPayments.has(attempt.payment.id)) {
+            completedPayments.add(attempt.payment.id);
+            addPaymentToRecentList(attempt.payment);
         }
+        if (!attempt.review_required && !attempt.test_mode && memberIdHidden.value === attempt.member_id && attempt.new_end_date) {
+            document.getElementById('display_member_end_date').textContent = formatDate(attempt.new_end_date);
+            document.getElementById('display_member_status').innerHTML = '<span class="status-badge active">Active</span>';
+        }
+    });
+    window.addEventListener('gymms:qr-state', function(event) {
+        const unresolved = event.detail && event.detail.is_unresolved;
+        document.getElementById('submitBtn').disabled = isSubmitting || !!unresolved;
     });
 
     // ===== FORM SUBMISSION =====
@@ -236,20 +235,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Check reference number for digital payments - REQUIRED
-        const method = paymentMethodSelect.value;
-        if (digitalMethods.includes(method)) {
-            const refValue = referenceInput.value.trim();
-            if (!refValue) {
-                console.log('[PAYMENT] Validation failed: Reference number required for digital payment');
-                if (typeof showNotification === 'function') {
-                    showNotification('Reference/Transaction number is required for digital payments', 'error');
-                } else {
-                    alert('Reference/Transaction number is required for digital payments');
-                }
-                referenceInput.focus();
-                return;
-            }
+        if (window.GymQRPayment && window.GymQRPayment.unresolved) {
+            window.GymQRPayment.reopen();
+            return;
+        }
+        if (paymentMethodSelect.value === 'QRPh') {
+            if (!window.GymQRPayment) { showNotification('QR payment is unavailable. Please reload the page.', 'error'); return; }
+            window.GymQRPayment.start(new FormData(paymentForm));
+            return;
         }
 
         console.log('[PAYMENT] Validation passed, submitting payment...');
@@ -259,6 +252,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Prepare form data
         const formData = new FormData(paymentForm);
+        cashRequestKey = cashRequestKey || crypto.randomUUID();
+        formData.set('request_key', cashRequestKey);
         
         // Disable submit button to prevent double submission
         const submitBtn = document.getElementById('submitBtn');
@@ -276,7 +271,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Check if response is ok before parsing JSON
             if (!response.ok) {
                 return response.json().then(data => {
-                    throw new Error(data.message || 'Payment processing failed');
+                    if (response.status >= 400 && response.status < 500 && response.status !== 409) cashRequestKey = null;
+                    const message = data.message || 'Payment processing failed';
+                    throw new Error(response.status === 409 ? `${message} Check the existing payment before retrying; the same request key will be retained.` : message);
                 });
             }
             return response.json();
@@ -308,10 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('display_member_status').innerHTML = '<span class="status-badge">—</span>';
                 document.getElementById('memberAvatarContainer').innerHTML = '<div class="member-initials">?</div>';
                 
-                // Reset reference field to disabled state
-                referenceInput.disabled = true;
-                referenceInput.value = '';
-                referenceRequired.style.display = 'none';
+                cashRequestKey = null;
                 selectedMember = null;
                 
                 // Add payment to recent payments list immediately
@@ -322,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Reset submission state and re-enable button
                 isSubmitting = false;
-                submitBtn.disabled = false;
+                submitBtn.disabled = !!(window.GymQRPayment && window.GymQRPayment.unresolved);
                 console.log('[PAYMENT] Button re-enabled');
                 
                 // If walk-in, redirect to dashboard after short delay
@@ -343,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Restore button state
                 isSubmitting = false;
-                submitBtn.disabled = false;
+                submitBtn.disabled = !!(window.GymQRPayment && window.GymQRPayment.unresolved);
             }
         })
         .catch(error => {
@@ -357,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Restore button state
             isSubmitting = false;
-            submitBtn.disabled = false;
+            submitBtn.disabled = !!(window.GymQRPayment && window.GymQRPayment.unresolved);
         });
     });
 
@@ -366,6 +360,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function addPaymentToRecentList(payment) {
         const tableBody = document.querySelector('.payments-table tbody');
         if (!tableBody) return;
+        if (payment.id && [...tableBody.rows].some(row => row.dataset.paymentId === String(payment.id))) return;
         
         // Check if there's an empty state message and remove it
         const emptyState = tableBody.querySelector('.empty-state');
@@ -375,22 +370,21 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Create new row
         const newRow = document.createElement('tr');
+        if (payment.id) newRow.dataset.paymentId = payment.id;
         newRow.classList.add('newly-added'); // For animation
         
         // Determine method badge class
         const methodClass = `method-${payment.payment_method.toLowerCase().replace(/\s+/g, '')}`;
         
-        newRow.innerHTML = `
-            <td>${payment.payment_date}</td>
-            <td><span class="member-id-badge">${payment.stored_member_id}</span></td>
-            <td>${payment.stored_member_name}</td>
-            <td class="amount">₱${parseFloat(payment.amount).toFixed(2)}</td>
-            <td><span class="method-badge ${methodClass}">${payment.payment_method}</span></td>
-            <td>${payment.reference_number}</td>
-            <td><span class="status-badge status-${payment.status.toLowerCase()}">${payment.status}</span></td>
-            <td>${payment.processed_by}</td>
-        `;
-        
+        const fields = [payment.payment_date, payment.stored_member_id, payment.stored_member_name,
+            `₱${parseFloat(payment.amount).toFixed(2)}`, payment.payment_method, payment.reference_number || '—', payment.status,
+            typeof payment.processed_by === 'object' ? payment.processed_by.username : payment.processed_by];
+        fields.forEach((value, index) => {
+            const cell = document.createElement('td'); cell.textContent = value == null ? '—' : value;
+            if (index === 3) cell.className = 'amount';
+            newRow.appendChild(cell);
+        });
+
         // Insert at the top
         tableBody.insertBefore(newRow, tableBody.firstChild);
         

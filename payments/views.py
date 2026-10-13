@@ -19,7 +19,7 @@ def payments(request):
     member_id = request.GET.get('member_id')
     is_walkin = request.GET.get('walkin') == 'true'
     selected_member = None
-    today = timezone.now().date()
+    today = timezone.localdate()
     
     if member_id:
         try:
@@ -54,136 +54,123 @@ def payments(request):
     return render(request, "payments/payments.html", context)
 
 
-@login_required
-def process_payment(request):
-    """
-    Process a new payment
-    """
-    if request.method == 'POST':
+def staff_endpoint(view):
+    from functools import wraps
+    @wraps(view)
+    def wrapped(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'success': False, 'message': 'Authentication required.'}, status=401)
+        if not request.user.is_active or (getattr(request.user, 'role', '') not in ('Owner', 'Staff') and not request.user.is_superuser):
+            return JsonResponse({'success': False, 'message': 'Staff access required.'}, status=403)
+        return view(request, *args, **kwargs)
+    return wrapped
+
+
+def request_data(request):
+    import json
+    from .services.fulfillment import CheckoutError
+    if request.content_type == 'application/json':
         try:
-            # Get form data
-            member_id = request.POST.get('member_id')
-            pricing_id = request.POST.get('pricing_id')
-            payment_method = request.POST.get('payment_method')
-            reference_number = request.POST.get('reference_number', '').strip()
-            remarks = request.POST.get('remarks', '').strip()
-            
-            # Check if this is a walk-in guest
-            is_walkin = (member_id == 'GYMMSGUEST')
-            
-            if is_walkin:
-                # For walk-in guests, we don't have a member record
-                member = None
-                # Get guest name from remarks or use default
-                guest_name = request.POST.get('guest_name', 'Walk-in Guest')
-                stored_member_id = 'GYMMSGUEST'
-                stored_member_name = guest_name
-            else:
-                # Validate member for regular payments
-                member = get_object_or_404(Member, member_id=member_id, is_deleted=False)
-                stored_member_id = member.member_id
-                stored_member_name = member.name
-            
-            # Validate pricing
-            pricing = get_object_or_404(MembershipPricing, id=pricing_id, is_active=True)
-            
-            # Create payment record
-            payment = Payment.objects.create(
-                member=member,  # None for walk-in guests
-                stored_member_id=stored_member_id,
-                stored_member_name=stored_member_name,
-                amount=pricing.price,
-                payment_method=payment_method,
-                reference_number=reference_number if reference_number else None,
-                payment_date=timezone.now(),
-                status='Completed',
-                processed_by=request.user,
-                remarks=remarks,
-                # Store membership plan reference and details
-                membership_plan=pricing,
-                stored_plan_label=pricing.duration_label,
-                stored_duration_days=pricing.duration_days
-            )
-            
-            # Update member subscription dates (only for registered members, not walk-ins)
-            if not is_walkin and member:
-                today = timezone.now().date()
-                
-                # If member's subscription is expired or not active, start from today
-                # Otherwise, extend from current end_date
-                if member.end_date < today or not member.is_active:
-                    member.start_date = today
-                    member.end_date = today + timedelta(days=pricing.duration_days)
-                else:
-                    # Extend current subscription (keep start_date as is)
-                    member.end_date = member.end_date + timedelta(days=pricing.duration_days)
-                
-                # Update membership fee to current pricing
-                member.membership_fee = pricing.price
-                member.is_active = True
-                member.save()
-                
-                # Debug logging
-                print(f"[PAYMENT] Member {member.member_id} subscription updated:")
-                print(f"  - is_active: {member.is_active}")
-                print(f"  - start_date: {member.start_date}")
-                print(f"  - end_date: {member.end_date}")
-                print(f"  - membership_fee: {member.membership_fee}")
-                
-                success_message = f'Payment processed successfully! {member.name}\'s membership extended until {member.end_date.strftime("%b %d, %Y")}'
-                new_end_date = member.end_date.strftime('%Y-%m-%d')
-            else:
-                # Walk-in guest
-                print(f"[PAYMENT] Walk-in guest payment processed: {stored_member_name}")
-                success_message = f'Walk-in payment processed successfully for {stored_member_name}!'
-                new_end_date = None
-            
-            messages.success(request, success_message)
-            
-            # Prepare payment data for immediate display
-            payment_data = {
-                'id': str(payment.id),
-                'payment_date': payment.payment_date.strftime('%b %d, %Y %H:%M'),
-                'stored_member_id': payment.stored_member_id,
-                'stored_member_name': payment.stored_member_name,
-                'amount': str(payment.amount),
-                'payment_method': payment.payment_method,
-                'reference_number': payment.reference_number or '—',
-                'status': payment.status,
-                'processed_by': request.user.username
-            }
-            
-            return JsonResponse({
-                'success': True,
-                'message': success_message,
-                'payment_id': str(payment.id),
-                'new_end_date': new_end_date,
-                'is_walkin': is_walkin,
-                'payment': payment_data
-            })
-            
-        except Member.DoesNotExist:
-            return JsonResponse({
-                'success': False,
-                'message': 'Member not found'
-            }, status=404)
-        
-        except MembershipPricing.DoesNotExist:
-            return JsonResponse({
-                'success': False,
-                'message': 'Invalid pricing option'
-            }, status=400)
-        
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'message': f'Error processing payment: {str(e)}'
-            }, status=500)
-    
-    return JsonResponse({
-        'success': False,
-        'message': 'Invalid request method'
-    }, status=405)
+            data = json.loads(request.body)
+            if not isinstance(data, dict):
+                raise ValueError()
+            return data
+        except (ValueError, UnicodeDecodeError):
+            raise CheckoutError('Invalid request body.')
+    return request.POST
+
+
+@staff_endpoint
+def process_payment(request):
+    from .services.fulfillment import process_cash, serialize_payment, CheckoutError
+    from django.db import IntegrityError
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required.'}, status=405)
+    try:
+        payment, end_date = process_cash(request.user, request_data(request))
+        is_walkin = payment.stored_member_id == 'GYMMSGUEST'
+        message = 'Cash payment processed successfully.'
+        return JsonResponse({'success': True, 'message': message, 'payment_id': str(payment.pk),
+                             'new_end_date': end_date.isoformat() if end_date else None,
+                             'is_walkin': is_walkin, 'payment': serialize_payment(payment)})
+    except CheckoutError as exc:
+        return JsonResponse({'success': False, 'message': str(exc)}, status=exc.status)
+    except IntegrityError:
+        return JsonResponse({'success': False, 'message': 'Payment request conflict. Retry with the same request key.'}, status=409)
+
+
+@staff_endpoint
+def qrph_create(request):
+    from .services.qrph import create_attempt, serialize_attempt
+    from .services.fulfillment import CheckoutError
+    from django.db import IntegrityError
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required.'}, status=405)
+    try:
+        attempt = create_attempt(request.user, request_data(request))
+        return JsonResponse({'success': True, 'attempt': serialize_attempt(attempt)}, status=202)
+    except CheckoutError as exc:
+        return JsonResponse({'success': False, 'message': str(exc)}, status=exc.status)
+    except IntegrityError:
+        return JsonResponse({'success': False, 'message': 'Another checkout is unresolved. Resume your current payment.'}, status=409)
+
+
+@staff_endpoint
+def qrph_current(request):
+    from .models import OnlinePaymentAttempt, UNRESOLVED_STATUSES
+    from .services.qrph import serialize_attempt
+    if request.method != 'GET':
+        return JsonResponse({'success': False, 'message': 'GET required.'}, status=405)
+    attempt = OnlinePaymentAttempt.objects.filter(created_by=request.user, status__in=UNRESOLVED_STATUSES).select_related('payment__processed_by').first()
+    return JsonResponse({'success': True, 'attempt': serialize_attempt(attempt) if attempt else None})
+
+
+def accessible_attempt(request, attempt_id):
+    from .models import OnlinePaymentAttempt
+    query = OnlinePaymentAttempt.objects.select_related('payment__processed_by')
+    if getattr(request.user, 'role', '') != 'Owner' and not request.user.is_superuser:
+        query = query.filter(created_by=request.user)
+    return query.filter(pk=attempt_id).first()
+
+
+@staff_endpoint
+def qrph_detail(request, attempt_id):
+    from .services.qrph import serialize_attempt
+    if request.method != 'GET':
+        return JsonResponse({'success': False, 'message': 'GET required.'}, status=405)
+    attempt = accessible_attempt(request, attempt_id)
+    if not attempt:
+        return JsonResponse({'success': False, 'message': 'Payment attempt not found.'}, status=404)
+    return JsonResponse({'success': True, 'attempt': serialize_attempt(attempt)})
+
+
+@staff_endpoint
+def qrph_cancel(request, attempt_id):
+    from .services.qrph import request_cancel, serialize_attempt
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required.'}, status=405)
+    attempt = accessible_attempt(request, attempt_id)
+    if not attempt:
+        return JsonResponse({'success': False, 'message': 'Payment attempt not found.'}, status=404)
+    return JsonResponse({'success': True, 'attempt': serialize_attempt(request_cancel(attempt.pk))})
+
+
+from django.views.decorators.csrf import csrf_exempt
+
+
+@csrf_exempt
+def paymongo_webhook(request, mode):
+    from .services.qrph import receive_webhook
+    from .services.fulfillment import CheckoutError
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required.'}, status=405)
+    if len(request.body) > 1024 * 1024:
+        return JsonResponse({'success': False, 'message': 'Payload too large.'}, status=413)
+    try:
+        receive_webhook(mode, request.body, request.headers.get('Paymongo-Signature', ''))
+        return JsonResponse({'success': True})
+    except CheckoutError as exc:
+        return JsonResponse({'success': False, 'message': str(exc)}, status=exc.status)
 
 
 @login_required
@@ -204,7 +191,7 @@ def search_members(request):
         is_deleted=False
     )[:10]  # Limit to 10 results
     
-    today = timezone.now().date()
+    today = timezone.localdate()
     
     members_data = []
     for m in members:
@@ -279,7 +266,7 @@ def transaction_history(request):
     if payment_method:
         if payment_method == 'Digital':
             # Filter for all digital payment methods (exclude Cash)
-            digital_methods = ['GCash', 'Maya', 'GoTyme', 'Bank Transfer', 'PayPal', 'Debit Card', 'Credit Card']
+            digital_methods = ['QRPh', 'GCash', 'Maya', 'GoTyme', 'Bank Transfer', 'PayPal', 'Debit Card', 'Credit Card']
             transactions = transactions.filter(payment_method__in=digital_methods)
         else:
             transactions = transactions.filter(payment_method=payment_method)
@@ -295,7 +282,7 @@ def transaction_history(request):
             transactions = transactions.filter(stored_member_id='GYMMSGUEST')
     
     # Calculate summary statistics for filtered results
-    stats = transactions.aggregate(
+    stats = transactions.filter(status='Completed').aggregate(
         total_revenue=Sum('amount'),
         total_count=Count('id'),
         average_amount=Avg('amount')
@@ -370,7 +357,7 @@ def transaction_stats(request):
     delta = period_map.get(period)
     
     # Start with all transactions
-    transactions = Payment.objects.all()
+    transactions = Payment.objects.filter(status='Completed')
     
     # Apply time period filter
     if delta:
@@ -395,7 +382,7 @@ def transaction_stats(request):
         try:
             date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
             # If date_from is provided, use it instead of period-based start_date
-            transactions = Payment.objects.filter(payment_date__date__gte=date_from_obj)
+            transactions = Payment.objects.filter(status='Completed', payment_date__date__gte=date_from_obj)
             if search_query:
                 transactions = transactions.filter(
                     Q(stored_member_id__icontains=search_query) |
@@ -417,7 +404,7 @@ def transaction_stats(request):
     payment_method = request.GET.get('payment_method', '').strip()
     if payment_method:
         if payment_method == 'Digital':
-            digital_methods = ['GCash', 'Maya', 'GoTyme', 'Bank Transfer', 'PayPal', 'Debit Card', 'Credit Card']
+            digital_methods = ['QRPh', 'GCash', 'Maya', 'GoTyme', 'Bank Transfer', 'PayPal', 'Debit Card', 'Credit Card']
             transactions = transactions.filter(payment_method__in=digital_methods)
         else:
             transactions = transactions.filter(payment_method=payment_method)
@@ -431,7 +418,7 @@ def transaction_stats(request):
             transactions = transactions.filter(stored_member_id='GYMMSGUEST')
     
     # Calculate statistics
-    stats = transactions.aggregate(
+    stats = transactions.filter(status='Completed').aggregate(
         total_revenue=Sum('amount'),
         total_count=Count('id'),
         average_amount=Avg('amount')
@@ -486,7 +473,7 @@ def get_transactions_ajax(request):
     if payment_method:
         if payment_method == 'Digital':
             # Filter for all digital payment methods (exclude Cash)
-            digital_methods = ['GCash', 'Maya', 'GoTyme', 'Bank Transfer', 'PayPal', 'Debit Card', 'Credit Card']
+            digital_methods = ['QRPh', 'GCash', 'Maya', 'GoTyme', 'Bank Transfer', 'PayPal', 'Debit Card', 'Credit Card']
             transactions = transactions.filter(payment_method__in=digital_methods)
         else:
             transactions = transactions.filter(payment_method=payment_method)
@@ -502,7 +489,7 @@ def get_transactions_ajax(request):
             transactions = transactions.filter(stored_member_id='GYMMSGUEST')
     
     # Calculate summary statistics for filtered results
-    stats = transactions.aggregate(
+    stats = transactions.filter(status='Completed').aggregate(
         total_revenue=Sum('amount'),
         total_count=Count('id'),
         average_amount=Avg('amount')

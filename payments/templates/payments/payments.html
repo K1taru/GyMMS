@@ -117,13 +117,7 @@
 									<select id="payment_method" name="payment_method" required>
 										<option value="">Select payment method...</option>
 										<option value="Cash">Cash</option>
-										<option value="GCash">GCash</option>
-										<option value="Maya">Maya</option>
-										<option value="GoTyme">GoTyme</option>
-										<option value="Bank Transfer">Bank Transfer</option>
-										<option value="PayPal">PayPal</option>
-										<option value="Debit Card">Debit Card</option>
-										<option value="Credit Card">Credit Card</option>
+										<option value="QRPh">QR Ph — GCash, GoTyme, Maya</option>
 									</select>
 								</div>
 
@@ -139,20 +133,7 @@
 								</div>
 							</div>
 
-			<!-- Reference Number (conditional) -->
-			<div class="form-section" id="referenceSection">
-				<label for="reference_number">
-					Reference / Transaction Number 
-					<span class="required-indicator" id="referenceRequired" style="display: none;">*</span>
-				</label>
-				<input 
-					type="text" 
-					id="reference_number" 
-					name="reference_number" 
-					placeholder="Enter reference/transaction number"
-					disabled
-				>
-			</div>			<!-- Remarks -->
+			<!-- Remarks -->
 							<div class="form-section">
 								<label for="remarks">Remarks (Optional)</label>
 								<textarea 
@@ -221,7 +202,7 @@
 						</thead>
 						<tbody>
 							{% for payment in recent_payments %}
-							<tr>
+							<tr data-payment-id="{{ payment.id }}">
 								<td>{{ payment.payment_date|date:"M d, Y H:i" }}</td>
 								<td><span class="member-id-badge">{{ payment.stored_member_id }}</span></td>
 								<td>{{ payment.stored_member_name }}</td>

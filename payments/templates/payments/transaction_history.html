@@ -93,6 +93,7 @@
 						<select id="paymentMethodFilter">
 							<option value="" {% if not payment_method %}selected{% endif %}>All Methods</option>
 							<option value="Cash" {% if payment_method == 'Cash' %}selected{% endif %}>Cash</option>
+							<option value="QRPh" {% if payment_method == 'QRPh' %}selected{% endif %}>QR Ph</option>
 							<option value="Digital" {% if payment_method == 'Digital' %}selected{% endif %}>Digital Transactions (All)</option>
 							<option value="GCash" {% if payment_method == 'GCash' %}selected{% endif %}>GCash</option>
 							<option value="Maya" {% if payment_method == 'Maya' %}selected{% endif %}>Maya</option>

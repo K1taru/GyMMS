@@ -276,6 +276,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    window.addEventListener('gymms:payment-completed', applyFilters);
+
     // ===== UPDATE TABLE FUNCTION =====
 
     function updateTable(transactions) {

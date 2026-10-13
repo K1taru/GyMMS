@@ -60,3 +60,5 @@
         <button class="alert-button" id="alert-ok">OK</button>
     </div>
 </div>
+
+{% if user.is_authenticated %}{% include 'core/qr_payment_widget.html' %}{% endif %}
