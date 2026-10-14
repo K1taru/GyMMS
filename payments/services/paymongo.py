@@ -59,7 +59,9 @@ class PayMongoClient:
                 return result['data']
         except urllib.error.HTTPError as exc:
             # Provider response body can contain credentials/customer data; never surface it.
-            raise ProviderError('PayMongo rejected the request.', uncertain=method != 'GET' and exc.code >= 500, retryable=exc.code >= 500) from None
+            transient = exc.code in (408, 429) or exc.code >= 500
+            uncertain = method != 'GET' and (exc.code == 408 or exc.code >= 500)
+            raise ProviderError('PayMongo rejected the request.', uncertain=uncertain, retryable=transient) from None
         except (urllib.error.URLError, socket.timeout, TimeoutError, OSError, ValueError, http.client.HTTPException) as exc:
             raise ProviderError(uncertain=method != 'GET') from None
 
@@ -79,8 +81,18 @@ class PayMongoClient:
         return self._request('POST', 'payment_methods', {'type': 'qrph', 'expiry_seconds': max(60, min(9000, expiry))})
 
     def attach_method(self, intent_id, method_id):
+        intent_id = self._id(intent_id)
+        # Keep the documented intent client key server-side. Fetching it avoids
+        # storing another credential and also supports a resumed preparation job.
+        intent = self.retrieve_intent(intent_id)
+        if intent.get('id') != intent_id or not isinstance(intent.get('attributes'), dict):
+            raise ProviderError('Provider intent identity does not match attachment.', retryable=False)
+        attributes = {'payment_method': self._id(method_id)}
+        client_key = intent['attributes'].get('client_key')
+        if isinstance(client_key, str) and client_key:
+            attributes['client_key'] = client_key
         return self._request('POST', 'payment_intents/' + self._id(intent_id) + '/attach',
-                             {'payment_method': self._id(method_id)})
+                             attributes)
 
     def retrieve_intent(self, intent_id):
         return self._request('GET', 'payment_intents/' + self._id(intent_id))

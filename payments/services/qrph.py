@@ -42,6 +42,8 @@ def create_attempt(user, data):
     if OnlinePaymentAttempt.objects.filter(created_by=user, status__in=UNRESOLVED_STATUSES).exists():
         raise CheckoutError('Resolve your current QRPh payment before starting another.', 409)
     member, pricing, name, remarks = checkout_snapshot(data)
+    if pricing.price < 1:
+        raise CheckoutError('QR Ph requires a minimum payment of PHP 1.00.')
     if member and OnlinePaymentAttempt.objects.filter(member=member, status__in=UNRESOLVED_STATUSES).exists():
         raise CheckoutError('This member already has an unresolved QRPh payment.', 409)
     return OnlinePaymentAttempt.objects.create(
@@ -196,7 +198,8 @@ def _apply_intent(attempt, resource, client):
         payment_id = payments[-1].get('id')
         _settle(attempt, client.retrieve_payment(payment_id), expected_payment_id=payment_id)
         return
-    if attempt.payment_id:
+    # A verified simulated receipt is terminal too, even without a ledger row.
+    if attempt.payment_id or (attempt.status == 'completed' and attempt.provider_payment_id):
         return
     if status in ('cancelled', 'canceled'):
         _save(attempt, status='expired' if attempt.cancel_reason == 'expiry' else 'cancelled', pending_operation='', retry_count=0, message='Provider confirmed QR expiry.' if attempt.cancel_reason == 'expiry' else 'Provider confirmed cancellation.')

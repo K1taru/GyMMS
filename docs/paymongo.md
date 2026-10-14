@@ -2,6 +2,56 @@
 
 PayMongo support is opt-in. Keep `PAYMONGO_ENABLED=False` until the account is activated, credentials are installed, webhook delivery is verified, and the payment worker is running. The background worker and settlement/reconciliation processing run even while customer QR checkout is disabled.
 
+## Setup on your Docker deployment
+
+1. **Prepare your PayMongo account.** Complete merchant activation and confirm QR Ph is available in the live account's payment methods. Open Developers → API Keys and obtain the test secret key. This integration uses API secret keys on Django; you do not need to paste a public key into templates or JavaScript. Official references: [QR Ph API](https://docs.paymongo.com/docs/payment-acceptance-qr-ph-api) and [launch checklist](https://docs.paymongo.com/docs/payment-acceptance-go-live-checklist).
+
+2. **Edit the private `.env`.** On an existing deployment, keep the working PostgreSQL variables and password; do not copy the example over your runtime file. `.env.example` is only a safe template. The Django names are `DJANGO_SECRET_KEY` and `DJANGO_DEBUG`; a Django key is different from a PayMongo key. Set the following test-mode values locally, using your actual secrets only in `.env`:
+
+   ```dotenv
+   PAYMONGO_ENABLED=False
+   PAYMONGO_MODE=test
+   PAYMONGO_SECRET_KEY_TEST=sk_test_REPLACE_WITH_YOUR_KEY
+   PAYMONGO_WEBHOOK_SECRET_TEST=
+   ```
+
+   For public deployment set `DJANGO_DEBUG=False`, `DJANGO_ALLOWED_HOSTS` to your public hostname (without `https://`), `DJANGO_CSRF_TRUSTED_ORIGINS` to its `https://` origin, and `DJANGO_SECURE_SSL_REDIRECT=True`. Keep a strong private Django secret. Keep `.env` permissions restricted (`chmod 600 .env`). If real credentials appeared in a committed/shared `.env.example`, removing them from the latest file does not remove them from Git history: rotate exposed credentials through their owning systems. Changing a database password in `.env` alone does not change the password of an existing PostgreSQL volume.
+
+3. **Back up and deploy.** Back up the existing database before applying migrations. From the project directory:
+
+   ```bash
+   docker compose config --quiet
+   docker compose up -d --build
+   docker compose ps
+   docker compose exec web python manage.py check_paymongo
+   ```
+
+   The web container applies committed migrations and collects static assets; the worker starts after migration readiness. The first configuration check will report the missing webhook secret until you register the endpoint. It does not contact PayMongo or PostgreSQL and never displays credential values. Do not run `docker compose down -v`; that removes the database volume.
+
+4. **Register the test webhook.** In PayMongo Developers → Webhooks, add `https://YOUR_HOST/payments/webhooks/paymongo/test/`. Subscribe to `payment.paid`, `payment.failed`, and `qrph.expired` (if available in the account's event list). The handler also accepts `payment_intent.succeeded` and `payment_intent.awaiting_payment_method`; these can supplement the QR expiry event. Use one endpoint per environment, not one per checkout. Copy this endpoint's webhook signing secret into `PAYMONGO_WEBHOOK_SECRET_TEST`. API and webhook secrets are different. Allow signed POST requests through the tunnel/proxy without login, CAPTCHA, or Cloudflare Access challenges on this exact route. [PayMongo webhook setup](https://docs.paymongo.com/docs/developer-tools-webhook-setup-management)
+
+5. **Reload configuration and check it.** Recreate the web and worker containers after editing `.env`; `docker compose restart` does not reload container environment variables:
+
+   ```bash
+   docker compose up -d --force-recreate --no-deps web payment-worker
+   docker compose exec web python manage.py check_paymongo --strict
+   docker compose logs --tail=100 web payment-worker
+   ```
+
+   Keep logs private. When configuration checks pass and the worker is running, set `PAYMONGO_ENABLED=True` in `.env` for the test-mode smoke test, then repeat the recreation command. If production HTTPS validation fails, correct the hostname/origin/proxy configuration before proceeding.
+
+6. **Run the provider smoke test.** Log in as staff, select a fixture member or walk-in and a pricing plan, choose **QR Ph — GCash, GoTyme, Maya**, and submit. The modal must progress from preparing to the TEST simulator link. Never scan a test QR: PayMongo warns that test QR images can process real payments. Use the simulator, verify delivery in PayMongo's webhook dashboard, then verify that the attempt is simulated-complete with no real ledger entry or membership extension. Exercise failure, cancellation, minimize/reopen, navigation, refresh, and multi-tab recovery. The server forwards the intent's `client_key` when PayMongo provides one, but actual secret-key attachment permissions and cancellation behavior must still be validated against your account. If generation or cancellation is rejected, inspect the attempt in admin and confirm the provider contract rather than recording a manual digital success. [PayMongo QR testing warning](https://docs.paymongo.com/docs/payment-acceptance-testing)
+
+7. **Switch to live mode.** First set `PAYMONGO_ENABLED=False` and recreate the containers. Add the live secret key as `PAYMONGO_SECRET_KEY_LIVE`. Register `https://YOUR_HOST/payments/webhooks/paymongo/live/` in live mode and save its separate signing secret as `PAYMONGO_WEBHOOK_SECRET_LIVE`. Set `PAYMONGO_MODE=live`, recreate the containers, then run:
+
+   ```bash
+   docker compose exec web python manage.py check_paymongo --strict --production
+   ```
+
+   This is an offline check, not proof of provider connectivity or account activation. Keep the old test credentials while test events remain pending. After live checks pass, set `PAYMONGO_ENABLED=True` and recreate again. Perform a controlled real QR payment yourself, verifying the provider receipt, exactly one transaction, and the expected membership result. Confirm scanning with GCash, GoTyme, and Maya before broad staff use. The common QR accepts all supported apps; the ledger reports QR Ph.
+
+8. **Operate and recover.** Monitor the payment worker and webhook deliveries. Owners can inspect attempts/events in Django admin and use the safe recovery actions described below. To stop new QR payments, set `PAYMONGO_ENABLED=False` and recreate web/worker; keep the webhook route and worker online so existing payments still settle.
+
 ## Payment flow and safety
 
 - Staff can record cash as a walk-in payment. QR Ph is a separate option.
