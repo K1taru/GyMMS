@@ -17,7 +17,7 @@ TimeoutStartSec=45min
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=full
-ProtectHome=yes
+ProtectHome=read-only
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 
 [Install]
