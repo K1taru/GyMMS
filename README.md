@@ -94,6 +94,8 @@ This checks the built image's platform. Runtime startup, PostgreSQL connectivity
 
 ## Routine maintenance
 
+GitHub Actions builds/tests PRs and publishes signed AMD64/ARM64 images after changes merge into `main`. An outbound-only timer on the Docker host verifies and pulls releases, backs up data, migrates, and recreates services. See [CI/CD setup](docs/ci-cd.md) for GitHub configuration and one-time host installation. Timer-managed production installations must use that guide's pinned-image maintenance procedure; the commands below are for manual source deployments.
+
 Back up PostgreSQL and `media/` before releases. Stop application services while applying schema changes; use reviewed, committed incremental migrations:
 
 ```bash

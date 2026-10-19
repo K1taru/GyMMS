@@ -4,7 +4,6 @@ __pycache__/
 *.db
 .env
 .env.*
-!.env.example
 *.dump
 *.sql
 *.sql.gz
@@ -22,8 +21,10 @@ venv/
 .mypy_cache/
 .codex/
 .agents/
+.aws/
 .documentation/
 .git
 node_modules
 media/
 staticfiles/
+!.env.example

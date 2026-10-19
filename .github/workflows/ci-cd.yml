@@ -1,0 +1,125 @@
+name: CI / CD
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18.6-trixie
+        env:
+          POSTGRES_DB: gymms_ci
+          POSTGRES_USER: gymms_ci
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U gymms_ci -d gymms_ci"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Validate deployment and Compose
+        run: |
+          bash -n scripts/deploy.sh scripts/test-image.sh
+          python3 tests/test_deploy_script.py
+          cp .env.example .env
+          docker compose config --quiet
+      - name: Build and test application image
+        run: |
+          docker build --pull --tag gymms:ci .
+          bash scripts/test-image.sh gymms:ci
+      - name: Run payment widget tests
+        run: node --test --test-isolation=none tests/js/qr_payment.test.cjs
+
+  publish:
+    name: Publish signed production image
+    needs: checks
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    concurrency:
+      group: gymms-production
+      cancel-in-progress: false
+    services:
+      postgres:
+        image: postgres:18.6-trixie
+        env:
+          POSTGRES_DB: gymms_ci
+          POSTGRES_USER: gymms_ci
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U gymms_ci -d gymms_ci"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set registry name
+        id: registry
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: echo "image=ghcr.io/${REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
+      - name: Build candidate images
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.registry.outputs.image }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+      - name: Test the exact images that will be released
+        env:
+          IMAGE: ${{ steps.registry.outputs.image }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          bash scripts/test-image.sh "$IMAGE@$DIGEST" linux/amd64
+          bash scripts/test-image.sh "$IMAGE@$DIGEST" linux/arm64
+      - name: Sign and promote only the current main release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          IMAGE: ${{ steps.registry.outputs.image }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          current=$(gh api "repos/$REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          if [[ "$current" != "$GITHUB_SHA" ]]; then
+            echo 'Skipping superseded release.'
+            exit 0
+          fi
+          cosign sign --yes -a release=production -a "run_number=$GITHUB_RUN_NUMBER" "$IMAGE@$DIGEST"
+          docker buildx imagetools create --tag "$IMAGE:production" "$IMAGE@$DIGEST"
+          echo "Published $IMAGE@$DIGEST; the host timer reports actual deployment status." >> "$GITHUB_STEP_SUMMARY"
