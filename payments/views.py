@@ -155,13 +155,19 @@ def qrph_detail(request, attempt_id):
 
 @staff_endpoint
 def qrph_cancel(request, attempt_id):
-    from .services.qrph import request_cancel, serialize_attempt
+    from .services.qrph import request_cancel, reconcile_attempt, serialize_attempt
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': 'POST required.'}, status=405)
     attempt = accessible_attempt(request, attempt_id)
     if not attempt:
         return JsonResponse({'success': False, 'message': 'Payment attempt not found.'}, status=404)
-    return JsonResponse({'success': True, 'attempt': serialize_attempt(request_cancel(attempt.pk))})
+    attempt = request_cancel(attempt.pk)
+    if attempt.status == 'cancel_requested':
+        # The worker remains the fallback if it already owns this checkout or
+        # the provider cannot confirm cancellation during this bounded request.
+        reconcile_attempt(attempt.pk)
+        attempt.refresh_from_db()
+    return JsonResponse({'success': True, 'attempt': serialize_attempt(attempt)})
 
 
 from django.views.decorators.csrf import csrf_exempt

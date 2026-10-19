@@ -60,7 +60,8 @@ PayMongo support is opt-in. Keep `PAYMONGO_ENABLED=False` until the account is a
 - Staff can record cash as a walk-in payment. QR Ph is a separate option.
 - Every supported wallet scans the same QR Ph code; the payer chooses their wallet in their app.
 - Permit one unresolved QR payment per staff member. A pending QR is not revenue and must not extend a membership.
-- Minimizing only hides the modal. Cancel requests release the checkout only after a provider-confirmed nonpayable state, or before any provider request has begun. An unknown provider request remains unresolved.
+- Minimizing only hides the modal. The Cancel button immediately attempts provider verification/cancellation; an active worker claim leaves it queued for the worker. Confirmed cancellation or QR expiry automatically closes the modal, removes the floating badge and browser recovery pointer, and permits a new checkout. The audit row is retained.
+- Cancel requests release the checkout only after a provider-confirmed nonpayable state, or before any provider request has begun. A rejected or timed-out cancellation stays pending and is automatically rechecked (within 60 seconds while the worker is running); a payable or processing QR still blocks a replacement payment. A local countdown or cancellation click is not confirmation. Earlier review flags are cleared when cancellation, expiry, or failure is verified.
 - Provider webhooks and reconciliation establish settlement. A browser redirect or screenshot is never proof of payment.
 - In PayMongo test mode, do not scan test QR images with a real wallet. Use the provider's test URL/simulator flow; the customer UI must hide test QR images.
 

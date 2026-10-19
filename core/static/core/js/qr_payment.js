@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let attempt = null, busy = false, starting = false, minimized = read('minimized') === 'true';
     let returnFocus = null, previousOverflow = '', noticeTimer, terminalAnnounced = null, generation = 0;
     let inertElements = [], serverOffset = 0;
-    const labels = {preparing:'Preparing QR', ready:'QR Ph ready', processing:'Confirming payment', cancel_requested:'Cancellation requested', needs_review:'Owner help required', completed:'Payment completed', cancelled:'Payment cancelled', expired:'QR expired', failed:'Payment failed'};
+    const labels = {preparing:'Preparing QR', ready:'QR Ph ready', processing:'Confirming payment', cancel_requested:'Cancelling payment', needs_review:'Owner help required', completed:'Payment completed', cancelled:'Payment cancelled', expired:'QR expired', failed:'Payment failed'};
     function notice(message) { el('notice').textContent = message; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => { el('notice').textContent = ''; }, 8000); }
     function open() {
         minimized = false; save('minimized', 'false');
@@ -25,6 +25,11 @@ document.addEventListener('DOMContentLoaded', () => {
         minimized = true; save('minimized', 'true');
         if (!el('overlay').hidden) { el('overlay').hidden = true; document.body.style.overflow = previousOverflow; inertElements.forEach(([node, previous]) => { node.inert = previous; }); inertElements = []; if (returnFocus && returnFocus.isConnected) returnFocus.focus(); }
         el('floating').hidden = !attempt && !starting;
+    }
+    function clearAttempt() {
+        generation++;
+        attempt = null; save('attempt', null);
+        minimize(); render();
     }
     function csrf() { const field = document.querySelector('[name=csrfmiddlewaretoken]'); return field ? field.value : decodeURIComponent((document.cookie.match(/(?:^|; )csrftoken=([^;]*)/) || [,''])[1]); }
     async function request(url, options = {}) {
@@ -52,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         el('summary').textContent = a ? `${a.customer_name || ''} · ${a.plan_label || ''} · ${a.currency || 'PHP'} ${a.amount || ''}` : '';
         el('message').textContent = a ? a.status === 'needs_review' ? `${a.message || 'Payment status is uncertain.'} Ask an Owner to review this payment before trying again.` : a.message || (a.status === 'ready' ? 'Scan using GCash, GoTyme, Maya, or another QR Ph app.' : '') : 'Please wait while we prepare your payment.';
         if (a && a.status === 'completed' && a.test_mode && !a.payment) el('message').textContent = 'TEST MODE simulation complete. No payment receipt, membership extension, check-in, or revenue was recorded.';
-        else if (a && a.review_required) el('message').textContent = `${a.message || 'Payment was received but membership fulfillment requires review.'} Ask an Owner for help. Membership renewal is not confirmed.`;
+        else if (a && a.review_required && a.status === 'completed') el('message').textContent = `${a.message || 'Payment was received but membership fulfillment requires review.'} Ask an Owner for help. Membership renewal is not confirmed.`;
         el('image-area').replaceChildren();
         if (a && a.status === 'ready') {
             if (a.test_mode) {
@@ -77,6 +82,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function update(a) {
         if (!a) return;
         if (attempt && attempt.is_unresolved && attempt.id !== a.id && !a.is_unresolved) return;
+        if (!a.is_unresolved && !a.review_required && ['cancelled', 'expired'].includes(a.status)) {
+            clearAttempt(); notice(titleFor(a));
+            return;
+        }
         const previous = attempt;
         if (a.server_time && Number.isFinite(Date.parse(a.server_time))) serverOffset = Date.parse(a.server_time) - Date.now();
         attempt = a; save('attempt', a.id);
@@ -126,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
         }
     });
-    el('dismiss').addEventListener('click', () => { if (attempt && attempt.is_unresolved) return; attempt = null; save('attempt',null); minimize(); render(); });
+    el('dismiss').addEventListener('click', () => { if (attempt && attempt.is_unresolved) return; clearAttempt(); });
     el('cancel').addEventListener('click', async () => {
         if (!attempt || !attempt.is_unresolved || attempt.can_cancel !== true || attempt.payment || attempt.provider_payment_id || busy || starting) return;
         busy = true; render();
@@ -138,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
     window.addEventListener('storage', event => {
         if (!event.key || !event.key.startsWith(prefix)) return;
-        if (event.key === prefix + 'attempt' && event.newValue === null && attempt && !attempt.is_unresolved) { attempt = null; minimize(); render(); }
+        if (event.key === prefix + 'attempt' && event.newValue === null && attempt && !attempt.is_unresolved) clearAttempt();
         minimized = read('minimized') === 'true';
         if (minimized && !el('overlay').hidden) minimize();
         refresh();

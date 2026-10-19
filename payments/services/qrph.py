@@ -73,7 +73,7 @@ def serialize_attempt(attempt):
 @transaction.atomic
 def request_cancel(attempt_id):
     attempt = OnlinePaymentAttempt.objects.select_for_update().get(pk=attempt_id)
-    if attempt.is_unresolved and not attempt.payment_id:
+    if attempt.is_unresolved and not attempt.payment_id and not attempt.provider_payment_id:
         attempt.status = 'cancel_requested'
         attempt.cancel_reason = 'staff'
         attempt.message = 'Checking payment status and requesting provider cancellation.'
@@ -140,6 +140,11 @@ def _save(attempt, **values):
             raise ProviderError('Worker claim expired.')
         values['updated_at'] = timezone.now()
         incoming_status = values.get('status')
+        if incoming_status in ('cancelled', 'expired', 'failed'):
+            # Verified nonpayable outcomes resolve earlier uncertainty. Keep
+            # the audit row, but retire the QR and release the checkout slot.
+            values.update(review_required=False, qr_image='', test_url='',
+                          pending_operation='', retry_count=0)
         if incoming_status == 'needs_review':
             values['review_required'] = True
             if current.status not in UNRESOLVED_STATUSES:
@@ -224,11 +229,16 @@ def _apply_intent(attempt, resource, client):
         _save(attempt, status='cancel_requested' if attempt.status == 'cancel_requested' else 'processing',
               message='The provider is processing the payment.')
     elif status == 'awaiting_payment_method':
+        if attempt.status in ('cancelled', 'expired', 'failed') and not attempt.pending_operation:
+            # Retired QR data is no longer needed to prove the same terminal
+            # outcome on subsequent worker passes. Success is handled above.
+            return
         last_error = attrs.get('last_payment_error') or {}
         expired = (attempt.qr_image and attempt.expires_at and attempt.expires_at <= timezone.now()) or last_error.get('code') in ('qrph_expired', 'qrph.expired')
-        if not attempt.pending_operation and attempt.payment_method_id and expired:
+        no_pending_attachment = attempt.pending_operation in ('', 'cancel_intent')
+        if no_pending_attachment and attempt.payment_method_id and expired:
             _save(attempt, status='expired', retry_count=0, message='Provider confirmed this QR is no longer payable.')
-        elif not attempt.pending_operation and attempt.qr_image and last_error:
+        elif no_pending_attachment and attempt.qr_image and last_error:
             _save(attempt, status='failed', retry_count=0, message='Provider confirmed payment failure.')
         elif attempt.payment_method_id or attempt.pending_operation:
             _review(attempt, 'Provider could not confirm this payment. Owner review is required.')
@@ -372,7 +382,7 @@ def _reconcile(attempt, client):
     if attempt.status != 'cancel_requested' and attrs.get('status') == 'awaiting_next_action' and attempt.expires_at and attempt.expires_at <= timezone.now():
         _save(attempt, status='cancel_requested', cancel_reason='expiry', message='QR countdown ended; confirming provider cancellation.')
     if attempt.status == 'cancel_requested':
-        if attrs.get('status') == 'awaiting_payment_method' and not attempt.pending_operation:
+        if attrs.get('status') == 'awaiting_payment_method' and attempt.pending_operation in ('', 'cancel_intent'):
             _apply_intent(attempt, resource, client)
             if attempt.status in ('expired', 'failed'):
                 return
@@ -391,16 +401,26 @@ def _reconcile(attempt, client):
 
 
 def _release(attempt):
-    interval = getattr(settings, 'PAYMONGO_RECONCILE_INTERVAL', 60)
-    interval = min(3600, interval * (2 ** min(attempt.retry_count, 6)))
-    OnlinePaymentAttempt.objects.filter(pk=attempt.pk, work_token=attempt.work_token).update(
-        locked_until=None, work_token=None, next_retry_at=timezone.now() + timedelta(seconds=interval))
+    with transaction.atomic():
+        current = OnlinePaymentAttempt.objects.select_for_update().filter(pk=attempt.pk, work_token=attempt.work_token).first()
+        if not current:
+            return
+        interval = getattr(settings, 'PAYMONGO_RECONCILE_INTERVAL', 60)
+        interval = min(3600, interval * (2 ** min(current.retry_count, 6)))
+        if current.status == 'cancel_requested':
+            # Read current state: staff can cancel while a worker is in flight.
+            interval = min(interval, 60 if current.retry_count else 3)
+        OnlinePaymentAttempt.objects.filter(pk=current.pk, work_token=attempt.work_token).update(
+            locked_until=None, work_token=None, next_retry_at=timezone.now() + timedelta(seconds=interval))
 
 
 def _handle_provider_error(attempt, exc):
     if not OnlinePaymentAttempt.objects.filter(pk=attempt.pk, work_token=attempt.work_token, locked_until__gt=timezone.now()).exists():
         return
     _save(attempt, retry_count=attempt.retry_count + 1)
+    if attempt.status == 'cancel_requested' and attempt.payment_intent_id and attempt.pending_operation in ('', 'cancel_intent'):
+        _save(attempt, message='Cancellation is not confirmed yet. The QR may still be payable. Automatically checking PayMongo until cancellation, payment, or QR expiry is confirmed.')
+        return
     if attempt.pending_operation or not exc.retryable:
         if not attempt.payment_intent_id and not attempt.pending_operation:
             _save(attempt, status='failed', message='Provider rejected checkout creation. No payable QR was created.')
