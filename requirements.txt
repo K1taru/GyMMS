@@ -1,22 +1,20 @@
-# Refer to settings.py INSTALLED APPS []
-djangorestframework
-django-crispy-forms
-crispy-bootstrap5
-django-filter
-django-extensions
+# Runtime dependencies, pinned together with their transitive dependencies.
+# Resolve and verify on Python 3.14 for both Linux AMD64 and ARM64 when updating.
+Django==6.1.2
+django-crispy-forms==2.7
+django-filter==26.2
+django-extensions==4.1
+django-environ==0.14.0
+psycopg[binary]==3.3.6
+psycopg-binary==3.3.6
+pillow==13.0.0
+gunicorn==26.2.0
+whitenoise==6.12.0
+python-dateutil==2.9.0.post0
 
-Django>=5.2,<5.3
-psycopg2-binary>=2.9
-python-dotenv>=1.0
-
-django-environ>=0.11.2
-pillow>=9.0
-
-# Nginx dep
-gunicorn>=20.1
-whitenoise>=6.8,<7
-
-# Date utilities
-python-dateutil>=2.8.2
-
+# Transitive dependencies
+asgiref==3.12.1
+sqlparse==0.6.0
+typing_extensions==4.16.0
+six==1.17.0
 

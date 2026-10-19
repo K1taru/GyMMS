@@ -3,9 +3,11 @@ from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.static import serve
+from core.health import health
 
 
 urlpatterns = [
+    path("health/", health, name="health"),
     path("admin/", admin.site.urls),
     path("", include("core.urls")),     # Currently where the root, landing page
     path("dashboard/", include("dashboard.urls")),

@@ -477,12 +477,14 @@ def _finish_event(event):
         status='processed', processed_at=timezone.now(), locked_until=None, work_token=None, last_error='')
 
 
-def worker_tick(client=None):
+def worker_tick(client=None, stop_requested=None):
     now = timezone.now()
     available = Q(locked_until__isnull=True) | Q(locked_until__lte=now)
     event_ids = list(PayMongoWebhookEvent.objects.filter(available, status='pending', next_retry_at__lte=now)
                      .order_by('received_at').values_list('pk', flat=True)[:20])
     for pk in event_ids:
+        if stop_requested and stop_requested():
+            return
         process_webhook(pk, client)
     # Keep terminal provider intents in reconciliation: a late paid receipt still settles exactly once.
     ids = list(OnlinePaymentAttempt.objects.filter(available, next_retry_at__lte=now, payment__isnull=True)
@@ -490,5 +492,7 @@ def worker_tick(client=None):
                .exclude(mode='test', status='completed')
                .order_by('next_retry_at').values_list('pk', flat=True)[:20])
     for pk in ids:
+        if stop_requested and stop_requested():
+            return
         process_attempt(pk, client)
     return len(event_ids) + len(ids)
