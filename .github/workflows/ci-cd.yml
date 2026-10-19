@@ -105,8 +105,11 @@ jobs:
           IMAGE: ${{ steps.registry.outputs.image }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
-          bash scripts/test-image.sh "$IMAGE@$DIGEST" linux/amd64
-          bash scripts/test-image.sh "$IMAGE@$DIGEST" linux/arm64
+          index=$(docker buildx imagetools inspect "$IMAGE@$DIGEST" --raw)
+          amd64_digest=$(jq -er '.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest' <<<"$index")
+          arm64_digest=$(jq -er '.manifests[] | select(.platform.os == "linux" and .platform.architecture == "arm64") | .digest' <<<"$index")
+          bash scripts/test-image.sh "$IMAGE@$amd64_digest" linux/amd64
+          bash scripts/test-image.sh "$IMAGE@$arm64_digest" linux/arm64
       - name: Sign and promote only the current main release
         env:
           GH_TOKEN: ${{ github.token }}
