@@ -212,7 +212,7 @@
 								<td>
 									<span class="status-badge status-{{ payment.status|lower }}">{{ payment.status }}</span>
 								</td>
-								<td>{{ payment.processed_by.username }}</td>
+								<td>{{ payment.processor_display }}</td>
 							</tr>
 							{% empty %}
 							<tr>
@@ -230,7 +230,7 @@
 	</main>
 
 	<script defer src="{% static 'core/js/input-validator.js' %}"></script>
-	<script defer src="{% static 'payments/js/payments.js' %}?v=3.3"></script>
+	<script defer src="{% static 'payments/js/payments.js' %}?v=3.4"></script>
 	<script defer src="{% static 'payments/js/payments_walkin.js' %}"></script>
 </body>
 </html>

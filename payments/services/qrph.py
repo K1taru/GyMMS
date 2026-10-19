@@ -11,7 +11,7 @@ from django.db import transaction, IntegrityError
 from django.db.models import Q
 from django.utils import timezone
 from memberships.models import Member
-from payments.models import OnlinePaymentAttempt, PayMongoWebhookEvent, Payment, UNRESOLVED_STATUSES
+from payments.models import OnlinePaymentAttempt, PayMongoWebhookEvent, Payment, UNRESOLVED_STATUSES, PROCESSOR_SNAPSHOT_FIELDS
 from .fulfillment import CheckoutError, checkout_snapshot, request_uuid, request_fingerprint, fulfill_member, serialize_payment
 from .paymongo import PayMongoClient, ProviderError
 
@@ -276,7 +276,8 @@ def _settle(attempt, resource, expected_payment_id=None):
             stored_member_name=locked.customer_name, membership_plan=locked.membership_plan,
             stored_plan_label=locked.plan_label, stored_duration_days=locked.duration_days, amount=locked.amount,
             payment_method='QRPh', reference_number=payment_id, payment_date=payment_date,
-            status='Completed', processed_by=locked.created_by, remarks=locked.remarks)
+            status='Completed', processed_by=locked.created_by, remarks=locked.remarks,
+            **{field: getattr(locked, field) for field in PROCESSOR_SNAPSHOT_FIELDS})
         locked.payment = payment
         locked.provider_payment_id = payment_id
         locked.new_end_date = end_date

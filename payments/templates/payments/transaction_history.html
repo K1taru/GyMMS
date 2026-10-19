@@ -6,7 +6,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Transaction History | GyMMS</title>
 	<link rel="stylesheet" href="{% static 'core/css/index.css' %}">
-	<link rel="stylesheet" href="{% static 'payments/css/transaction_history.css' %}?v=6.0">
+	<link rel="stylesheet" href="{% static 'payments/css/transaction_history.css' %}?v=7.1">
 </head>
 <body>
 	{% include 'core/navbar.html' %}
@@ -123,6 +123,18 @@
 						</select>
 					</div>
 
+                    {% if can_audit_processors %}
+                    <div class="filter-group">
+                        <label for="processorFilter">Processed By</label>
+                        <select id="processorFilter">
+                            <option value="">All Processors</option>
+                            {% for option in processor_options %}
+                            <option value="{{ option.processor }}" {% if processor == option.processor %}selected{% endif %}>{{ option.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
 					<!-- Clear Filters Button -->
 					<div class="filter-group filter-actions">
 						<button type="button" id="clearFilters" class="btn-clear">
@@ -149,12 +161,12 @@
 					</a>
 				</h3>
 				<div class="time-period-filter">
-					<button type="button" class="period-btn active" data-period="1d">1D</button>
-					<button type="button" class="period-btn" data-period="1w">1W</button>
-					<button type="button" class="period-btn" data-period="1m">1M</button>
-					<button type="button" class="period-btn" data-period="6m">6M</button>
-					<button type="button" class="period-btn" data-period="1y">1Y</button>
-					<button type="button" class="period-btn" data-period="all">All</button>
+					<button type="button" class="period-btn {% if period == '1d' %}active{% endif %}" data-period="1d">1D</button>
+					<button type="button" class="period-btn {% if period == '1w' %}active{% endif %}" data-period="1w">1W</button>
+					<button type="button" class="period-btn {% if period == '1m' %}active{% endif %}" data-period="1m">1M</button>
+					<button type="button" class="period-btn {% if period == '6m' %}active{% endif %}" data-period="6m">6M</button>
+					<button type="button" class="period-btn {% if period == '1y' %}active{% endif %}" data-period="1y">1Y</button>
+					<button type="button" class="period-btn {% if period == 'all' %}active{% endif %}" data-period="all">All</button>
 				</div>
 			</div>
 
@@ -209,7 +221,26 @@
 					</div>
 				</div>
 			</div>
-		</div>			<!-- Transactions Table -->
+        </div>
+        {% if can_audit_processors %}
+        <section class="processor-sales-card" aria-labelledby="processorSalesHeading">
+            <h3 id="processorSalesHeading">Sales by Processor</h3>
+            <p>Completed payments only. Uses the summary period and selected filters.</p>
+            <div class="table-container">
+                <table class="processor-sales-table">
+                    <thead><tr><th scope="col">Processed By</th><th scope="col">Completed Revenue</th><th scope="col">Payments</th><th scope="col">Average Sale</th></tr></thead>
+                    <tbody id="processorSalesBody">
+                        {% for row in processor_sales %}
+                        <tr><td>{{ row.label }}</td><td>₱{{ row.total_revenue|floatformat:2 }}</td><td>{{ row.total_count }}</td><td>₱{{ row.average_amount|floatformat:2 }}</td></tr>
+                        {% empty %}
+                        <tr><td colspan="4">No completed sales for these filters.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endif %}
+        <!-- Transactions Table -->
 			<div class="transactions-table-card">
 				<div class="table-container">
 					<table class="transactions-table">
@@ -252,7 +283,7 @@
 									</span>
 								</td>
 								<td>{{ transaction.reference_number|default:"—" }}</td>
-								<td>{{ transaction.processed_by.username|default:"—" }}</td>
+								<td title="{{ transaction.processor_display }}">{{ transaction.processor_display }}</td>
 							</tr>
 							{% empty %}
 							<tr>
@@ -270,7 +301,7 @@
 				<!-- Pagination Controls -->
 				<div class="pagination-container">
 					<div class="pagination-info">
-						Showing {{ start_index }} to {{ end_index }} of {{ total_count }} transactions
+						Showing {{ start_index }} to {{ end_index }} of {{ pagination_count }} transactions
 					</div>
 					
 					<div class="pagination-controls">
@@ -311,6 +342,7 @@
 							<option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
 							<option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
 							<option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
 						</select>
 					</div>
 				</div>
@@ -320,6 +352,6 @@
 
 	<script defer src="{% static 'core/js/notifications.js' %}"></script>
 	<script defer src="{% static 'core/js/input-validator.js' %}"></script>
-	<script defer src="{% static 'payments/js/transaction_history.js' %}?v=3.0"></script>
+	<script defer src="{% static 'payments/js/transaction_history.js' %}?v=4.0"></script>
 </body>
 </html>

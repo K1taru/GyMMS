@@ -4,11 +4,57 @@ from django.utils import timezone
 import uuid
 
 
-class Payment(models.Model):
+PROCESSOR_SNAPSHOT_FIELDS = ('stored_processor_id', 'stored_processor_username', 'stored_processor_name')
+
+
+def processor_snapshot(user):
+    return dict(stored_processor_id=user.pk, stored_processor_username=user.username,
+                stored_processor_name=(user.name or user.get_full_name())[:255])
+
+
+class ProcessorSnapshot(models.Model):
+    # Deliberately not a foreign key: attribution survives account deletion.
+    stored_processor_id = models.PositiveBigIntegerField(null=True, blank=True, editable=False, db_index=True)
+    stored_processor_username = models.CharField(max_length=150, blank=True, editable=False)
+    stored_processor_name = models.CharField(max_length=255, blank=True, editable=False)
+
+    PROCESSOR_RELATION_FIELDS = ()
+
+    class Meta:
+        abstract = True
+
+    @property
+    def processor_display(self):
+        if self.stored_processor_id is None:
+            return 'Unknown processor'
+        if self.stored_processor_name and self.stored_processor_username:
+            return f'{self.stored_processor_name} ({self.stored_processor_username})'
+        return self.stored_processor_username or self.stored_processor_name or f'Processor #{self.stored_processor_id}'
+
+    def save(self, *args, **kwargs):
+        fields = PROCESSOR_SNAPSHOT_FIELDS
+        fields += self.PROCESSOR_RELATION_FIELDS
+        if self._state.adding:
+            actor = getattr(self, 'processed_by', None) or getattr(self, 'created_by', None)
+            if self.stored_processor_id is None and actor:
+                for field, value in processor_snapshot(actor).items():
+                    setattr(self, field, value)
+        else:
+            update_fields = kwargs.get('update_fields')
+            if update_fields is None or set(update_fields).intersection((*fields, 'processed_by')):
+                original = type(self).objects.filter(pk=self.pk).values(*fields).first()
+                if original and any(original[field] != getattr(self, field) for field in fields):
+                    raise ValueError('Payment processor attribution is immutable.')
+        super().save(*args, **kwargs)
+
+
+class Payment(ProcessorSnapshot):
     """
     Payment records for gym memberships
     Stores member info to preserve data even if member is deleted
     """
+    PROCESSOR_RELATION_FIELDS = ('processed_by_id',)
+
     PAYMENT_METHOD_CHOICES = [
         ('Cash', 'Cash'),
         ('QRPh', 'QRPh'),
@@ -136,7 +182,7 @@ class MembershipPricing(models.Model):
 UNRESOLVED_STATUSES = ('preparing', 'ready', 'processing', 'cancel_requested', 'needs_review')
 
 
-class OnlinePaymentAttempt(models.Model):
+class OnlinePaymentAttempt(ProcessorSnapshot):
     """A durable checkout, separate from the completed-payment ledger."""
     STATUS_CHOICES = [(s, s.replace('_', ' ').title()) for s in
                       (*UNRESOLVED_STATUSES, 'completed', 'cancelled', 'expired', 'failed')]
@@ -184,7 +230,7 @@ class OnlinePaymentAttempt(models.Model):
     def save(self, *args, **kwargs):
         if not self._state.adding:
             update_fields = kwargs.get('update_fields')
-            if update_fields is None or set(update_fields).intersection(self.SNAPSHOT_FIELDS):
+            if update_fields is None or set(update_fields).intersection((*self.SNAPSHOT_FIELDS, 'created_by')):
                 original = type(self).objects.filter(pk=self.pk).values(*self.SNAPSHOT_FIELDS).first()
                 if original and any(original[field] != getattr(self, field) for field in self.SNAPSHOT_FIELDS):
                     raise ValueError('Checkout snapshots are immutable.')

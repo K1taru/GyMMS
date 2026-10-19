@@ -110,4 +110,4 @@ def serialize_payment(payment):
             'stored_plan_label': payment.stored_plan_label, 'stored_duration_days': payment.stored_duration_days,
             'amount': str(payment.amount), 'payment_method': payment.payment_method,
             'reference_number': payment.reference_number or '—', 'status': payment.status,
-            'processed_by': payment.processed_by.username if payment.processed_by else '—'}
+            'processed_by': payment.processor_display}

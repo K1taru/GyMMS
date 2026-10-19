@@ -289,6 +289,7 @@
 }
 
 .transactions-table {
+    min-width: 1100px;
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
@@ -737,3 +738,15 @@
         opacity: 0;
     }
 }
+
+/* Owner processor sales summary */
+.processor-sales-card { background: var(--card-bg, #fff); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+.processor-sales-card h3 { margin: 0 0 .5rem; }
+.processor-sales-card p { color: #555; margin: 0 0 1rem; }
+.processor-sales-table { width: 100%; border-collapse: collapse; min-width: 560px; }
+.processor-sales-table th, .processor-sales-table td { padding: .8rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+.processor-sales-table th { background: #f8f9fa; }
+.processor-sales-table td:first-child { overflow-wrap: anywhere; }
+@media (max-width: 600px) { .processor-sales-card { padding: .75rem; } }
+
+.transactions-table td:last-child { overflow-wrap: anywhere; }
