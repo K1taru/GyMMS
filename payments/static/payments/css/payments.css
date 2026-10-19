@@ -111,6 +111,7 @@
 }
 
 .form-section input[type="text"],
+.form-section input[type="password"],
 .form-section select,
 .form-section textarea {
     width: 100%;
@@ -124,6 +125,7 @@
 }
 
 .form-section input[type="text"]:focus,
+.form-section input[type="password"]:focus,
 .form-section select:focus,
 .form-section textarea:focus {
     outline: none;
@@ -135,6 +137,12 @@
 .form-section textarea {
     resize: vertical;
     font-family: inherit;
+}
+
+#cashPasswordHelp {
+    margin-top: 0.5rem;
+    color: var(--muted);
+    font-size: 0.85rem;
 }
 
 /* Member Search */

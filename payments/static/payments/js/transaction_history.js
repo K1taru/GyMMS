@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateTo = document.getElementById('dateTo');
     const paymentMethodFilter = document.getElementById('paymentMethodFilter');
     const memberTypeFilter = document.getElementById('memberTypeFilter');
+    const processorFilter = document.getElementById('processorFilter');
+    const processorSalesBody = document.getElementById('processorSalesBody');
     const clearFiltersBtn = document.getElementById('clearFilters');
     const prevPageBtn = document.getElementById('prevPage');
     const nextPageBtn = document.getElementById('nextPage');
@@ -15,12 +17,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const periodBtns = document.querySelectorAll('.period-btn');
 
     let filterTimeout = null;
+    let currentPeriod = document.querySelector('.period-btn.active')?.dataset.period || '1d';
+    let summaryVersion = 0;
+    let historyVersion = 0;
     let currentFilters = {
         search: searchInput.value || '',
         date_from: dateFrom.value || '',
         date_to: dateTo.value || '',
         payment_method: paymentMethodFilter.value || '',
         member_type: memberTypeFilter.value || '',
+        processor: processorFilter?.value || '',
         page: 1,
         per_page: parseInt(perPageSelect.value) || 10
     };
@@ -35,11 +41,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Fetch stats for selected period
             const period = this.getAttribute('data-period');
+            currentPeriod = period;
+            updateUrl();
             fetchStats(period);
         });
     });
 
     function fetchStats(period) {
+        const version = ++summaryVersion;
         // Add loading state to stat cards
         document.querySelectorAll('.stat-card').forEach(card => {
             card.classList.add('loading');
@@ -55,11 +64,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentFilters.date_to) params.set('date_to', currentFilters.date_to);
         if (currentFilters.payment_method) params.set('payment_method', currentFilters.payment_method);
         if (currentFilters.member_type) params.set('member_type', currentFilters.member_type);
+        if (processorFilter && currentFilters.processor) params.set('processor', currentFilters.processor);
 
         // Fetch stats from server
         fetch(`/payments/transactions/stats/?${params.toString()}`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
             .then(data => {
+                if (version !== summaryVersion) return;
+                updateProcessorReport(data);
                 // Update stat values with animation
                 updateStatValue('totalRevenue', `₱${parseFloat(data.total_revenue || 0).toFixed(2)}`);
                 updateStatValue('totalCount', data.total_count || 0);
@@ -71,6 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             })
             .catch(error => {
+                if (version !== summaryVersion) return;
                 console.error('Error fetching stats:', error);
                 showNotification('Failed to load statistics', 'error');
                 
@@ -116,6 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
             dateTo.value = this.value;
         }
         currentFilters.date_from = this.value;
+        currentFilters.date_to = dateTo.value;
         currentFilters.page = 1;
         applyFilters();
     });
@@ -126,6 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
             dateFrom.value = this.value;
         }
         currentFilters.date_to = this.value;
+        currentFilters.date_from = dateFrom.value;
         currentFilters.page = 1;
         applyFilters();
     });
@@ -146,6 +164,12 @@ document.addEventListener('DOMContentLoaded', function() {
         applyFilters();
     });
 
+    if (processorFilter) processorFilter.addEventListener('change', function() {
+        currentFilters.processor = this.value;
+        currentFilters.page = 1;
+        applyFilters();
+    });
+
     // Clear filters
     clearFiltersBtn.addEventListener('click', function() {
         searchInput.value = '';
@@ -153,6 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
         dateTo.value = '';
         paymentMethodFilter.value = '';
         memberTypeFilter.value = '';
+        if (processorFilter) processorFilter.value = '';
         
         currentFilters = {
             search: '',
@@ -160,6 +185,7 @@ document.addEventListener('DOMContentLoaded', function() {
             date_to: '',
             payment_method: '',
             member_type: '',
+            processor: '',
             page: 1,
             per_page: parseInt(perPageSelect.value) || 10
         };
@@ -173,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
     prevPageBtn.addEventListener('click', function() {
         if (currentFilters.page > 1) {
             currentFilters.page--;
-            applyFilters();
+            applyFilters(false);
         }
     });
 
@@ -182,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const maxPage = parseInt(pageInput.max);
         if (currentFilters.page < maxPage) {
             currentFilters.page++;
-            applyFilters();
+            applyFilters(false);
         }
     });
 
@@ -200,7 +226,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         this.value = page;
         currentFilters.page = page;
-        applyFilters();
+        applyFilters(false);
     });
 
     // Prevent non-numeric input
@@ -215,12 +241,29 @@ document.addEventListener('DOMContentLoaded', function() {
     perPageSelect.addEventListener('change', function() {
         currentFilters.per_page = parseInt(this.value);
         currentFilters.page = 1; // Reset to first page
-        applyFilters();
+        applyFilters(false);
     });
 
     // ===== APPLY FILTERS FUNCTION (AJAX) =====
 
-    function applyFilters() {
+    function updateUrl() {
+        const params = new URLSearchParams();
+        Object.entries(currentFilters).forEach(([key, value]) => {
+            if (value && !(key === 'page' && value === 1) && !(key === 'per_page' && value === 10)) params.set(key, value);
+        });
+        params.set('period', currentPeriod);
+        window.history.pushState({}, '', `/payments/transactions/?${params.toString()}`);
+    }
+
+    function selectPeriod(period) {
+        currentPeriod = period;
+        periodBtns.forEach(button => button.classList.toggle('active', button.dataset.period === period));
+    }
+
+    function applyFilters(resetPeriod = true) {
+        if (resetPeriod) selectPeriod('all');
+        const version = ++historyVersion;
+        const statsVersion = ++summaryVersion;
         // Build query string
         const params = new URLSearchParams();
         
@@ -229,16 +272,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentFilters.date_to) params.set('date_to', currentFilters.date_to);
         if (currentFilters.payment_method) params.set('payment_method', currentFilters.payment_method);
         if (currentFilters.member_type) params.set('member_type', currentFilters.member_type);
+        if (processorFilter && currentFilters.processor) params.set('processor', currentFilters.processor);
         if (currentFilters.page > 1) params.set('page', currentFilters.page);
         if (currentFilters.per_page !== 10) params.set('per_page', currentFilters.per_page);
         
         console.log('[APPLY FILTERS] Params:', params.toString());
         console.log('[APPLY FILTERS] Current filters:', currentFilters);
         
-        // Update URL without reload (for sharing/bookmarking)
-        const newUrl = `/payments/transactions${params.toString() ? '?' + params.toString() : ''}`;
-        window.history.pushState({}, '', newUrl);
-        
+        params.set('period', currentPeriod);
+        updateUrl();
+
         // Show loading state
         showLoading();
         
@@ -255,26 +298,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
+                if (version !== historyVersion) return;
                 console.log('[APPLY FILTERS] Response:', data);
                 updateTable(data.transactions);
                 updatePagination(data.pagination);
-                updateStats(data.stats);
-                
-                // Reset time period buttons to show "All" since we're using custom filters
-                periodBtns.forEach(b => b.classList.remove('active'));
-                const allBtn = document.querySelector('.period-btn[data-period="all"]');
-                if (allBtn) {
-                    allBtn.classList.add('active');
+                if (statsVersion === summaryVersion) {
+                    updateStats(data.stats);
+                    updateProcessorReport(data);
+                    document.querySelectorAll('.stat-card').forEach(card => card.classList.remove('loading'));
                 }
-                
+
                 hideLoading();
             })
             .catch(error => {
+                if (version !== historyVersion) return;
                 console.error('Error fetching transactions:', error);
                 showNotification('Failed to load transactions. Please try again.', 'error');
                 hideLoading();
             });
     }
+
+    window.addEventListener('gymms:payment-completed', () => applyFilters(false));
 
     // ===== UPDATE TABLE FUNCTION =====
 
@@ -294,43 +338,66 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        let html = '';
+        tbody.replaceChildren();
         transactions.forEach(transaction => {
-            const planInfo = transaction.stored_plan_label !== 'N/A' && transaction.stored_duration_days > 0
-                ? `${transaction.stored_plan_label} <small>(${transaction.stored_duration_days} days)</small>`
+            const row = document.createElement('tr');
+            const plan = transaction.stored_duration_days > 0
+                ? `${transaction.stored_plan_label} (${transaction.stored_duration_days} days)`
                 : transaction.stored_plan_label;
-            
-            html += `
-                <tr>
-                    <td>
-                        <span class="transaction-id" title="${transaction.id}">
-                            ${transaction.id}
-                        </span>
-                    </td>
-                    <td>${transaction.payment_date}</td>
-                    <td><span class="member-id-badge">${transaction.stored_member_id}</span></td>
-                    <td>${transaction.stored_member_name}</td>
-                    <td>
-                        <span class="plan-info">
-                            ${planInfo}
-                        </span>
-                    </td>
-                    <td class="amount">₱${transaction.amount}</td>
-                    <td>
-                        <span class="method-badge method-${transaction.payment_method.toLowerCase().replace(/\s/g, '')}">
-                            ${transaction.payment_method}
-                        </span>
-                    </td>
-                    <td>${transaction.reference_number}</td>
-                    <td>${transaction.processed_by}</td>
-                </tr>
-            `;
+            const values = [transaction.id, transaction.payment_date, transaction.stored_member_id,
+                transaction.stored_member_name, plan, `₱${Number(transaction.amount).toFixed(2)}`,
+                transaction.payment_method, transaction.reference_number, transaction.processed_by];
+            values.forEach((value, index) => {
+                const cell = document.createElement('td');
+                const content = document.createElement('span');
+                content.textContent = value ?? '—';
+                if (index === 0) { content.className = 'transaction-id'; content.title = transaction.id; }
+                if (index === 2) content.className = 'member-id-badge';
+                if (index === 4) content.className = 'plan-info';
+                if (index === 5) cell.className = 'amount';
+                if (index === 8) cell.title = String(value ?? 'Unknown processor');
+                if (index === 6) content.className = `method-badge method-${String(value).toLowerCase().replace(/[^a-z]/g, '')}`;
+                cell.appendChild(content);
+                row.appendChild(cell);
+            });
+            tbody.appendChild(row);
         });
-        
-        tbody.innerHTML = html;
-        
+
         // Re-attach click handlers for transaction IDs
         attachTransactionIdHandlers();
+    }
+
+    function updateProcessorReport(data) {
+        if (!processorSalesBody || !Array.isArray(data.processor_sales)) return;
+        processorSalesBody.replaceChildren();
+        data.processor_sales.forEach(item => {
+            const row = document.createElement('tr');
+            [item.label, `₱${Number(item.total_revenue).toFixed(2)}`, item.total_count,
+                `₱${Number(item.average_amount).toFixed(2)}`].forEach(value => {
+                const cell = document.createElement('td');
+                cell.textContent = value;
+                row.appendChild(cell);
+            });
+            processorSalesBody.appendChild(row);
+        });
+        if (!data.processor_sales.length) {
+            const cell = document.createElement('td');
+            cell.colSpan = 4;
+            cell.textContent = 'No completed sales for these filters.';
+            const row = document.createElement('tr');
+            row.appendChild(cell);
+            processorSalesBody.appendChild(row);
+        }
+        if (processorFilter && Array.isArray(data.processor_options)) {
+            const selection = currentFilters.processor;
+            processorFilter.replaceChildren(new Option('All Processors', ''));
+            data.processor_options.forEach(item => processorFilter.add(new Option(item.label, item.processor)));
+            // Preserve a valid selection even when it currently has no matching history.
+            if (selection && ![...processorFilter.options].some(option => option.value === selection)) {
+                processorFilter.add(new Option(`Processor #${selection}`, selection));
+            }
+            processorFilter.value = selection;
+        }
     }
 
     // ===== UPDATE PAGINATION FUNCTION =====
@@ -514,7 +581,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('[INIT] memberTypeFilter.value:', memberTypeFilter.value);
 
     // Load initial stats (1D by default)
-    fetchStats('1d');
+    fetchStats(currentPeriod);
 
     // Attach initial transaction ID handlers
     attachTransactionIdHandlers();

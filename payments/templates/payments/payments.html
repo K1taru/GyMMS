@@ -6,7 +6,7 @@
 	<meta name="viewport" content="width=device-width,initial-scale=1">
 	<title>Payment Processing | GyMMS</title>
 	<link rel="stylesheet" href="{% static 'core/css/index.css' %}">
-	<link rel="stylesheet" href="{% static 'payments/css/payments.css' %}?v=2.3">
+	<link rel="stylesheet" href="{% static 'payments/css/payments.css' %}?v=2.4">
 </head>
 <body>
 	{% include 'core/navbar.html' %}
@@ -117,13 +117,7 @@
 									<select id="payment_method" name="payment_method" required>
 										<option value="">Select payment method...</option>
 										<option value="Cash">Cash</option>
-										<option value="GCash">GCash</option>
-										<option value="Maya">Maya</option>
-										<option value="GoTyme">GoTyme</option>
-										<option value="Bank Transfer">Bank Transfer</option>
-										<option value="PayPal">PayPal</option>
-										<option value="Debit Card">Debit Card</option>
-										<option value="Credit Card">Credit Card</option>
+										<option value="QRPh">QR Ph — GCash, GoTyme, Maya</option>
 									</select>
 								</div>
 
@@ -139,20 +133,14 @@
 								</div>
 							</div>
 
-			<!-- Reference Number (conditional) -->
-			<div class="form-section" id="referenceSection">
-				<label for="reference_number">
-					Reference / Transaction Number 
-					<span class="required-indicator" id="referenceRequired" style="display: none;">*</span>
-				</label>
-				<input 
-					type="text" 
-					id="reference_number" 
-					name="reference_number" 
-					placeholder="Enter reference/transaction number"
-					disabled
-				>
-			</div>			<!-- Remarks -->
+							<div class="form-section" id="cashPasswordSection" hidden>
+								<label for="cash_password">Confirm Your Password</label>
+								<input type="password" id="cash_password" name="cash_password"
+								       autocomplete="current-password" aria-describedby="cashPasswordHelp" disabled>
+								<p id="cashPasswordHelp">Enter your signed-in account's password to authorize this cash payment.</p>
+							</div>
+
+			<!-- Remarks -->
 							<div class="form-section">
 								<label for="remarks">Remarks (Optional)</label>
 								<textarea 
@@ -221,7 +209,7 @@
 						</thead>
 						<tbody>
 							{% for payment in recent_payments %}
-							<tr>
+							<tr data-payment-id="{{ payment.id }}">
 								<td>{{ payment.payment_date|date:"M d, Y H:i" }}</td>
 								<td><span class="member-id-badge">{{ payment.stored_member_id }}</span></td>
 								<td>{{ payment.stored_member_name }}</td>
@@ -231,7 +219,7 @@
 								<td>
 									<span class="status-badge status-{{ payment.status|lower }}">{{ payment.status }}</span>
 								</td>
-								<td>{{ payment.processed_by.username }}</td>
+								<td>{{ payment.processor_display }}</td>
 							</tr>
 							{% empty %}
 							<tr>
@@ -249,7 +237,7 @@
 	</main>
 
 	<script defer src="{% static 'core/js/input-validator.js' %}"></script>
-	<script defer src="{% static 'payments/js/payments.js' %}?v=3.3"></script>
+	<script defer src="{% static 'payments/js/payments.js' %}?v=3.5"></script>
 	<script defer src="{% static 'payments/js/payments_walkin.js' %}"></script>
 </body>
 </html>

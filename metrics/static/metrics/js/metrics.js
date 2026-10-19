@@ -314,6 +314,8 @@ document.addEventListener('DOMContentLoaded', function () {
         fetchAndUpdateChart();
     });
 
+    window.addEventListener('gymms:payment-completed', fetchAndUpdateChart);
+
     // Initial load
     fetchAndUpdateChart();
 });

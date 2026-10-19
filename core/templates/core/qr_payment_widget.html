@@ -1,0 +1,18 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'core/css/qr_payment.css' %}">
+<script defer src="{% static 'core/js/qr_payment.js' %}"></script>
+<div id="gymqr-widget" data-user-id="{{ user.pk }}">
+    <div id="gymqr-overlay" hidden>
+        <section id="gymqr-dialog" role="dialog" aria-modal="true" aria-labelledby="gymqr-title" aria-describedby="gymqr-message" tabindex="-1">
+            <div class="gymqr-heading"><h2 id="gymqr-title">Preparing QR</h2><button type="button" id="gymqr-minimize" aria-label="Minimize QR payment">−</button></div>
+            <p id="gymqr-summary"></p>
+            <p id="gymqr-message" role="status" aria-live="polite"></p>
+            <div id="gymqr-image-area"></div>
+            <p id="gymqr-expiry"></p>
+            <p class="gymqr-hint">You can minimize this window and keep working. Payment confirmation continues even when the browser is closed.</p>
+            <div class="gymqr-actions"><button type="button" id="gymqr-cancel" hidden>Cancel payment</button><button type="button" id="gymqr-dismiss" hidden>Dismiss</button></div>
+        </section>
+    </div>
+    <button type="button" id="gymqr-floating" hidden aria-haspopup="dialog">QR Ph payment</button>
+    <div id="gymqr-notice" role="status" aria-live="polite"></div>
+</div>

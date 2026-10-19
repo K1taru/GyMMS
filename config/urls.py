@@ -1,10 +1,13 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.static import serve
+from core.health import health
 
 
 urlpatterns = [
+    path("health/", health, name="health"),
     path("admin/", admin.site.urls),
     path("", include("core.urls")),     # Currently where the root, landing page
     path("dashboard/", include("dashboard.urls")),
@@ -15,6 +18,6 @@ urlpatterns = [
     
 ]
 
-# Always serve media files (even in production for now) - in future, use proper media server/CDN 
-urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) # production staticfiles serving
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# WhiteNoise serves collected static assets under Gunicorn, including DEBUG=False.
+# Preserve the existing small-deployment upload serving until a media server is configured.
+urlpatterns += [re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT})]

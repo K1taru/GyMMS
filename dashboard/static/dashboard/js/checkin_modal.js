@@ -271,7 +271,7 @@ function setupCheckInModal() {
         e.preventDefault();
         
         const name = document.getElementById('guestName').value.trim();
-        const gender = document.getElementById('guestGender').value;
+        const gender = document.querySelector('input[name="guestGender"]:checked')?.value;
         
         if (!name || !gender) {
             showNotification('Please fill in all fields', 'error');
@@ -308,7 +308,9 @@ function setupCheckInModal() {
         
         // Clear walk-in form
         document.getElementById('guestName').value = 'Guest';
-        document.getElementById('guestGender').value = '';
+        document.querySelectorAll('input[name="guestGender"]').forEach(input => {
+            input.checked = false;
+        });
     }
     
     // Get CSRF token
