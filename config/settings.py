@@ -10,9 +10,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Read environment configuration before deriving security settings.
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
-env = environ.Env(DEBUG=(bool, False))
+env = environ.Env()
 
-DEBUG = env.bool("DJANGO_DEBUG", default=env.bool("DEBUG", default=False))
+DEBUG = env.bool("DJANGO_DEBUG", default=False)
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="")
 if not SECRET_KEY:
     if DEBUG:

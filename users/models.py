@@ -3,8 +3,12 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from django.core.validators import RegexValidator
 
+from .managers import StaffUserManager
+
 
 class StaffUser(AbstractUser):
+    objects = StaffUserManager()
+
     profile_image = models.ImageField(upload_to='staff_photos/', null=True, blank=True)
     ROLE_CHOICES = [
         ('Owner', 'Owner'),

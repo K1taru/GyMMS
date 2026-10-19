@@ -1,7 +1,7 @@
 
 services:
   db:
-    image: postgres:16
+    image: postgres:16-bookworm
     container_name: gymms_postgresql_db
     restart: always
     env_file:

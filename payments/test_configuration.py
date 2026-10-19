@@ -1,3 +1,4 @@
+import ast
 from io import StringIO
 from pathlib import Path
 import re
@@ -13,16 +14,38 @@ class ConfigurationTests(SimpleTestCase):
         names = [line.split('=', 1)[0].strip() for line in example.splitlines()
                  if '=' in line and not line.lstrip().startswith('#')]
         self.assertEqual(len(names), len(set(names)))
-        self.assertNotIn('SECRET_KEY', names)
-        self.assertNotIn('DEBUG', names)
+        self.assertFalse({'SECRET_KEY', 'DEBUG', 'ALLOWED_HOSTS'} & set(names))
         source = Path(settings.BASE_DIR, 'config/settings.py').read_text()
-        reads = set(re.findall(r'env(?:\.[a-z]+)?\(\s*[\'"]([A-Z_]+)[\'"]', source))
-        self.assertEqual(set(names) - reads, set())
+        reads = set()
+        for node in ast.walk(ast.parse(source)):
+            if not isinstance(node, ast.Call) or not node.args:
+                continue
+            function = node.func
+            is_env = isinstance(function, ast.Name) and function.id == 'env'
+            is_env_method = (isinstance(function, ast.Attribute)
+                             and isinstance(function.value, ast.Name)
+                             and function.value.id == 'env')
+            if is_env or is_env_method:
+                reads.add(ast.literal_eval(node.args[0]))
+        # Keep every runtime option discoverable and reject stale aliases.
+        self.assertEqual(set(names), reads)
         secrets = {'DJANGO_SECRET_KEY', 'PAYMONGO_SECRET_KEY', 'PAYMONGO_SECRET_KEY_TEST',
                    'PAYMONGO_SECRET_KEY_LIVE', 'PAYMONGO_WEBHOOK_SECRET_TEST', 'PAYMONGO_WEBHOOK_SECRET_LIVE'}
         values = dict(line.split('=', 1) for line in example.splitlines()
                       if '=' in line and not line.lstrip().startswith('#'))
         self.assertTrue(all(not values[name] for name in secrets))
+
+    def test_compose_maps_database_names_to_postgres_initialization_variables(self):
+        compose = Path(settings.BASE_DIR, 'docker-compose.yml').read_text()
+        mappings = re.findall(
+            r'^\s+(POSTGRES_[A-Z_]+):\s*\$\{([A-Z_]+)\}\s*$', compose, re.MULTILINE
+        )
+        self.assertEqual(len(mappings), 3)
+        self.assertEqual(dict(mappings), {
+            'POSTGRES_DB': 'DB_NAME',
+            'POSTGRES_USER': 'DB_USER',
+            'POSTGRES_PASSWORD': 'DB_PASSWORD',
+        })
 
     @override_settings(PAYMONGO_MODE='test', PAYMONGO_ENABLED=False,
                        PAYMONGO_SECRET_KEY='', PAYMONGO_SECRET_KEY_TEST='', PAYMONGO_WEBHOOK_SECRET_TEST='')
