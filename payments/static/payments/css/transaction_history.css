@@ -305,7 +305,8 @@
     text-align: center;
     font-weight: 600;
     font-size: 0.9rem;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .transactions-table th:first-child {
@@ -332,6 +333,8 @@
     vertical-align: middle;
     min-height: 60px;
     text-align: center;
+    /* Share wrapping across initial rows and rows refreshed by AJAX, including provider references. */
+    overflow-wrap: anywhere;
 }
 
 .transactions-table td:first-child {
@@ -377,7 +380,7 @@
     color: #666;
     cursor: help;
     word-break: break-all;
-    max-width: 120px;
+    max-width: 100%;
     line-height: 1.4;
     display: inline-block;
 }
@@ -405,11 +408,12 @@
 /* Method Badge */
 .method-badge {
     display: inline-block;
-    padding: 0.25rem 0.75rem;
+    padding: 0.25rem 0.5rem;
     border-radius: 6px;
     font-size: 0.85rem;
     font-weight: 600;
-    white-space: nowrap;
+    white-space: normal;
+    max-width: 100%;
 }
 
 .method-cash {
@@ -748,5 +752,3 @@
 .processor-sales-table th { background: #f8f9fa; }
 .processor-sales-table td:first-child { overflow-wrap: anywhere; }
 @media (max-width: 600px) { .processor-sales-card { padding: .75rem; } }
-
-.transactions-table td:last-child { overflow-wrap: anywhere; }
