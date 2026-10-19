@@ -40,7 +40,7 @@ This command overwrites prices/labels and reactivates existing plans matching ea
 
 This refresh starts with an empty PostgreSQL 18 database in a new `postgres18_data` volume. It does not import users, members, or payments from PostgreSQL 16. The previous volume and uploads are retained for recovery. Follow the [cutover procedure](docs/docker.md#cutover-from-postgresql-16) before starting this Compose configuration on an existing installation. Recreate the Owner and configure pricing afterward.
 
-Existing committed initial migrations are retained. Future schema changes use incremental migrations. Never mount a PostgreSQL 16 data directory into PostgreSQL 18, delete migration history, or use `docker compose down -v` for upgrades.
+Fresh databases use the consolidated payment migration `0001_squashed_0002_processor_audit`, which creates the processor audit fields directly. The original payment migrations are retained so existing databases can finish pending upgrades and backfill processor identities. Django records applied migrations; subsequent initialization runs leave the schema and historical snapshots unchanged. Keep both original files until every deployed database has completed the upgrade. Future schema changes use incremental migrations. Never mount a PostgreSQL 16 data directory into PostgreSQL 18, delete migration history, or use `docker compose down -v` for upgrades.
 
 ## Configuration and HTTPS deployment
 

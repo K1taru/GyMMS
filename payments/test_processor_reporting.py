@@ -241,32 +241,92 @@ class ProcessorReportingTests(Fixtures, TestCase):
 
 
 class ProcessorMigrationTests(TransactionTestCase):
-    def test_incremental_backfill_preserves_known_and_unknown_attribution(self):
-        old = [('payments', '0001_initial')]
-        new = [('payments', '0002_onlinepaymentattempt_stored_processor_id_and_more')]
+    initial = [('payments', '0001_initial')]
+    incremental = [('payments', '0002_onlinepaymentattempt_stored_processor_id_and_more')]
+    squashed = [('payments', '0001_squashed_0002_processor_audit')]
+
+    def setUp(self):
+        super().setUp()
+        MigrationExecutor(connection).migrate([('payments', None)])
+        self.addCleanup(self.restore_schema)
+
+    def restore_schema(self):
         executor = MigrationExecutor(connection)
-        try:
-            executor.migrate(old)
-            apps = executor.loader.project_state(old).apps
-            user = apps.get_model('users', 'StaffUser').objects.create(username='historic', name='Historic Staff')
-            ledger = apps.get_model('payments', 'Payment')
-            known = ledger.objects.create(processed_by_id=user.pk)
-            unknown = ledger.objects.create()
-            attempt_model = apps.get_model('payments', 'OnlinePaymentAttempt')
-            import uuid
-            attempt = attempt_model.objects.create(created_by_id=user.pk, request_key=uuid.uuid4(),
-                stored_member_id='GYMMSGUEST', customer_name='Guest', plan_label='Day', duration_days=1,
-                amount=100, amount_centavos=10000, mode='live')
-            executor = MigrationExecutor(connection)
-            executor.migrate(new)
-            apps = executor.loader.project_state(new).apps
-            restored = apps.get_model('payments', 'Payment').objects.get(pk=known.pk)
-            self.assertEqual(restored.stored_processor_id, user.pk)
-            self.assertEqual(restored.stored_processor_name, 'Historic Staff')
-            self.assertEqual(restored.stored_processor_username, 'historic')
-            self.assertIsNone(apps.get_model('payments', 'Payment').objects.get(pk=unknown.pk).stored_processor_id)
-            checkout = apps.get_model('payments', 'OnlinePaymentAttempt').objects.get(pk=attempt.pk)
-            self.assertEqual(checkout.stored_processor_id, user.pk)
-            self.assertEqual(checkout.stored_processor_username, 'historic')
-        finally:
-            MigrationExecutor(connection).migrate(new)
+        executor.migrate(executor.loader.graph.leaf_nodes())
+
+    def legacy_executor(self):
+        from django.db.migrations.loader import MigrationLoader
+        executor = MigrationExecutor(connection)
+        executor.loader = MigrationLoader(connection, replace_migrations=False)
+        return executor
+
+    def historic_records(self, apps):
+        user = apps.get_model('users', 'StaffUser').objects.create(username='historic', name='Historic Staff')
+        ledger = apps.get_model('payments', 'Payment')
+        known = ledger.objects.create(processed_by_id=user.pk)
+        unknown = ledger.objects.create()
+        import uuid
+        attempt = apps.get_model('payments', 'OnlinePaymentAttempt').objects.create(
+            created_by_id=user.pk, request_key=uuid.uuid4(), stored_member_id='GYMMSGUEST',
+            customer_name='Guest', plan_label='Day', duration_days=1,
+            amount=100, amount_centavos=10000, mode='live')
+        return user, known, unknown, attempt
+
+    def test_fresh_database_initializes_payments_once(self):
+        executor = MigrationExecutor(connection)
+        payment_plan = [(migration.name, backward) for migration, backward in executor.migration_plan(self.squashed)
+                        if migration.app_label == 'payments']
+        self.assertEqual(payment_plan, [('0001_squashed_0002_processor_audit', False)])
+        executor.migrate(self.squashed)
+        user = get_user_model().objects.create_user(username='fresh', name='Fresh Processor')
+        payment = Payment.objects.create(processed_by=user, amount=100)
+        self.assertEqual(payment.stored_processor_name, 'Fresh Processor')
+        with connection.cursor() as cursor:
+            fields = {field.name for field in connection.introspection.get_table_description(cursor, 'payments_onlinepaymentattempt')}
+        self.assertTrue({'stored_processor_id', 'stored_processor_name', 'stored_processor_username'} <= fields)
+        repeated = MigrationExecutor(connection)
+        self.assertEqual(repeated.migration_plan(self.squashed), [])
+        repeated.migrate(self.squashed)
+        self.assertEqual(Payment.objects.get(pk=payment.pk).stored_processor_name, 'Fresh Processor')
+
+    def test_incremental_backfill_preserves_known_and_unknown_attribution(self):
+        executor = self.legacy_executor()
+        executor.migrate(self.initial)
+        apps = executor.loader.project_state(self.initial).apps
+        user, known, unknown, attempt = self.historic_records(apps)
+        # A partially upgraded database must run the original backfill, not recreate tables.
+        executor = MigrationExecutor(connection)
+        self.assertEqual([(migration.name, backward) for migration, backward in executor.migration_plan(self.incremental)],
+                         [('0002_onlinepaymentattempt_stored_processor_id_and_more', False)])
+        executor.migrate(self.incremental)
+        restored = Payment.objects.get(pk=known.pk)
+        self.assertEqual(restored.stored_processor_id, user.pk)
+        self.assertEqual(restored.stored_processor_name, 'Historic Staff')
+        self.assertEqual(restored.stored_processor_username, 'historic')
+        self.assertIsNone(Payment.objects.get(pk=unknown.pk).stored_processor_id)
+        from payments.models import OnlinePaymentAttempt
+        checkout = OnlinePaymentAttempt.objects.get(pk=attempt.pk)
+        self.assertEqual(checkout.stored_processor_id, user.pk)
+        self.assertEqual(checkout.stored_processor_username, 'historic')
+        # Later initialization must never overwrite snapshots with renamed account details.
+        user.name = 'Later Name'
+        user.save()
+        executor = MigrationExecutor(connection)
+        self.assertEqual(executor.migration_plan(self.squashed), [])
+        executor.migrate(self.squashed)
+        self.assertEqual(Payment.objects.get(pk=known.pk).stored_processor_name, 'Historic Staff')
+        self.assertEqual(Payment.objects.count(), 2)
+
+    def test_fully_upgraded_database_adopts_squash_without_replaying_schema(self):
+        executor = self.legacy_executor()
+        executor.migrate(self.incremental)
+        payment = Payment.objects.create(amount=100)
+        # Simulate an installation that applied both originals before the squash existed.
+        from django.db.migrations.recorder import MigrationRecorder
+        recorder = MigrationRecorder(connection)
+        recorder.record_unapplied(*self.squashed[0])
+        executor = MigrationExecutor(connection)
+        self.assertEqual(executor.migration_plan(self.squashed), [])
+        executor.migrate(self.squashed)
+        self.assertIn(self.squashed[0], recorder.applied_migrations())
+        self.assertEqual(Payment.objects.get(pk=payment.pk).amount, Decimal('100.00'))
