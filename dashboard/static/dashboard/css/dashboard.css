@@ -628,6 +628,7 @@ a.mini-card-header:hover {
 }
 
 .modal-content {
+    position: relative;
     background: var(--card);
     border-radius: 12px;
     width: 90%;
@@ -663,6 +664,10 @@ a.mini-card-header:hover {
 }
 
 .modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1;
     background: none;
     border: none;
     font-size: 2rem;
@@ -999,4 +1004,9 @@ a.mini-card-header:hover {
         width: 14px;
         height: 14px;
     }
+}
+
+/* Keep wrapped titles clear of the anchored close button at every screen size. */
+.modal-header {
+    padding-right: 3.5rem;
 }

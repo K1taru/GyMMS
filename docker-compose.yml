@@ -1,5 +1,5 @@
 x-app: &app
-  image: gymms-app:local
+  image: ${GYMMS_IMAGE:-gymms-app:local}
   build: .
   env_file:
     - .env

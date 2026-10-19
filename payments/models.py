@@ -182,6 +182,11 @@ class MembershipPricing(models.Model):
 UNRESOLVED_STATUSES = ('preparing', 'ready', 'processing', 'cancel_requested', 'needs_review')
 
 
+class OnlinePaymentAttemptQuerySet(models.QuerySet):
+    def blocking(self):
+        return self.filter(status__in=UNRESOLVED_STATUSES, staff_cancelled_at__isnull=True)
+
+
 class OnlinePaymentAttempt(ProcessorSnapshot):
     """A durable checkout, separate from the completed-payment ledger."""
     STATUS_CHOICES = [(s, s.replace('_', ' ').title()) for s in
@@ -216,12 +221,14 @@ class OnlinePaymentAttempt(ProcessorSnapshot):
     # Persist before each provider mutation: a crash never repeats an unknown charge operation.
     pending_operation = models.CharField(max_length=32, blank=True)
     cancel_reason = models.CharField(max_length=16, blank=True)
+    staff_cancelled_at = models.DateTimeField(null=True, blank=True, editable=False)
     work_token = models.UUIDField(null=True, blank=True)
     locked_until = models.DateTimeField(null=True, blank=True)
     next_retry_at = models.DateTimeField(default=timezone.now, db_index=True)
     retry_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+    objects = OnlinePaymentAttemptQuerySet.as_manager()
 
     SNAPSHOT_FIELDS = ('request_key', 'request_fingerprint', 'created_by_id', 'stored_member_id',
                        'customer_name', 'plan_label', 'duration_days', 'amount', 'amount_centavos',
@@ -241,13 +248,17 @@ class OnlinePaymentAttempt(ProcessorSnapshot):
         return self.status in UNRESOLVED_STATUSES
 
     @property
+    def blocks_checkout(self):
+        return self.is_unresolved and self.staff_cancelled_at is None
+
+    @property
     def is_walkin(self):
         return self.stored_member_id == 'GYMMSGUEST'
 
     class Meta:
         ordering = ['-created_at']
         constraints = [
-            models.UniqueConstraint(fields=['created_by'], condition=models.Q(status__in=UNRESOLVED_STATUSES),
+            models.UniqueConstraint(fields=['created_by'], condition=models.Q(status__in=UNRESOLVED_STATUSES, staff_cancelled_at__isnull=True),
                                     name='one_unresolved_qrph_per_staff'),
             models.UniqueConstraint(fields=['mode', 'payment_intent_id'], condition=~models.Q(payment_intent_id=''),
                                     name='unique_qrph_provider_intent'),

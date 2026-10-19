@@ -19,7 +19,7 @@ class ReadOnlyPaymentAuditAdmin(admin.ModelAdmin):
 
 @admin.register(OnlinePaymentAttempt)
 class AttemptAdmin(ReadOnlyPaymentAuditAdmin):
-    list_display = ('id', 'customer_name', 'amount', 'mode', 'status', 'created_at')
+    list_display = ('id', 'customer_name', 'amount', 'mode', 'status', 'staff_cancelled_at', 'review_required', 'created_at')
     list_filter = ('mode', 'status')
     search_fields = ('stored_member_id', 'customer_name', 'payment_intent_id', 'provider_payment_id')
     actions = ('safe_cancel', 'retry_reconciliation', 'acknowledge_paid_review')
@@ -29,10 +29,10 @@ class AttemptAdmin(ReadOnlyPaymentAuditAdmin):
         from .services.qrph import request_cancel
         count = 0
         for attempt in queryset:
-            if attempt.is_unresolved and not attempt.payment_id and not attempt.provider_payment_id:
+            if attempt.blocks_checkout and not attempt.payment_id and not attempt.provider_payment_id:
                 request_cancel(attempt.pk)
                 count += 1
-        self.message_user(request, f'Queued {count} cancellation requests. Unknown provider outcomes remain unresolved.', messages.INFO)
+        self.message_user(request, f'Closed {count} payment processes. Provider cancellation and verification continue in the background.', messages.INFO)
 
     @admin.action(description='Retry verification of known provider intents', permissions=['view'])
     def retry_reconciliation(self, request, queryset):

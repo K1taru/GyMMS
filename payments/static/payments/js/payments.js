@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     window.addEventListener('gymms:qr-state', function(event) {
-        const unresolved = event.detail && event.detail.is_unresolved;
+        const unresolved = event.detail && (event.detail.blocks_checkout ?? event.detail.is_unresolved);
         document.getElementById('submitBtn').disabled = isSubmitting || !!unresolved;
     });
 

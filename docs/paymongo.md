@@ -59,9 +59,10 @@ PayMongo support is opt-in. Keep `PAYMONGO_ENABLED=False` until the account is a
 
 - Staff can record cash as a walk-in payment. QR Ph is a separate option.
 - Every supported wallet scans the same QR Ph code; the payer chooses their wallet in their app.
-- Permit one unresolved QR payment per staff member. A pending QR is not revenue and must not extend a membership.
-- Minimizing only hides the modal. The Cancel button immediately attempts provider verification/cancellation; an active worker claim leaves it queued for the worker. Confirmed cancellation or QR expiry automatically closes the modal, removes the floating badge and browser recovery pointer, and permits a new checkout. The audit row is retained.
-- Cancel requests release the checkout only after a provider-confirmed nonpayable state, or before any provider request has begun. A rejected or timed-out cancellation stays pending and is automatically rechecked (within 60 seconds while the worker is running); a payable or processing QR still blocks a replacement payment. A local countdown or cancellation click is not confirmation. Earlier review flags are cleared when cancellation, expiry, or failure is verified.
+- Permit one active QR checkout per staff member. A pending QR is not revenue and must not extend a membership.
+- Minimizing only hides the modal. Staff can cancel their own payment process without Owner approval. Once GyMMS saves cancellation, the modal, floating badge and browser recovery pointer are cleared and the staff member can immediately collect another QR or Cash payment, including for the same member. A failed cancellation request retains browser recovery until GyMMS confirms it.
+- Local staff cancellation (`staff_cancelled_at`) releases checkout immediately; `is_unresolved` still describes the provider outcome, while `blocks_checkout` describes whether the staff workflow is blocked. Cancelling locally does not guarantee PayMongo has revoked the QR. Tell the customer not to use the old QR. The worker continues cancellation and verification independently, including after a rejection or timeout.
+- A verified payment received after local staff cancellation is recorded exactly once as received funds and flagged for refund or credit review, without extending membership or creating a check-in. Replacement payments work normally. Financial review never restores the old popup or blocks checkout; refunds are not automatic.
 - Provider webhooks and reconciliation establish settlement. A browser redirect or screenshot is never proof of payment.
 - In PayMongo test mode, do not scan test QR images with a real wallet. Use the provider's test URL/simulator flow; the customer UI must hide test QR images.
 
@@ -88,7 +89,19 @@ Back up PostgreSQL and verify a restore before deploying payment migrations. Exi
 
 Future schema changes use normal incremental migrations. Startup never seeds pricing or an Owner; create the Owner with `createsuperuser` and configure pricing explicitly. The optional `seed_pricing` command overwrites matching prices and reactivates plans, and duplicate durations can make it fail. To stop collection, set `PAYMONGO_ENABLED=False` while retaining this release's webhook and worker services. Do not roll the payment endpoints or worker back to a pre-integration image while provider intents remain unresolved. Do not delete or reverse payment records during rollback.
 
-Owners with Django admin access (`is_staff=True`) can review attempts and events under `/admin/payments/`. Select unresolved attempts and use **Request safe provider cancellation**, or known provider intents and **Retry verification of known provider intents**. For pending webhook failures use **Retry pending webhook verification**. Actions schedule worker processing and never repeat an unknown creation request. Unknown requests without a provider ID require tracing the attempt UUID in the PayMongo dashboard/support before any replacement collection; no local action falsely declares cancellation. A confirmed paid receipt with `review_required=True` retains the payment but needs manual business resolution (for example, a deleted member). After resolving it, **Acknowledge paid receipt after manual review** records the Owner and time without extending membership or creating another payment. There is no seeded Owner or default password; create your Owner explicitly with `createsuperuser`. Record only provider/local IDs, timestamps, and outcomes in diagnostics.
+The staff-cancellation upgrade includes migration `0003_staff_cancellation`. It releases existing unpaid unresolved staff cancellation requests, preserving their provider state and queuing reconciliation. Its timestamp uses the last recorded update for these older requests. Build first, then stop both application services while applying the migration and deploy the web/worker together:
+
+```bash
+docker compose build web
+docker compose stop web payment-worker
+docker compose run --rm initialize
+docker compose up -d --force-recreate --no-deps web payment-worker
+docker compose exec web python manage.py check_paymongo --strict --production
+```
+
+Keep the database, test/live credentials, and webhook routes in place. Do not downgrade across this migration after staff have created replacement checkouts: the previous database constraint and code cannot represent the newly released workflows.
+
+Owners with Django admin access (`is_staff=True`) can review attempts and events under `/admin/payments/`, including the staff cancellation timestamp and review flag. Select active attempts and use **Request safe provider cancellation**, or known provider intents and **Retry verification of known provider intents**. For pending webhook failures use **Retry pending webhook verification**. Actions schedule worker processing and never repeat an unknown creation request. Unknown requests without a provider ID remain in the audit trail for tracing through PayMongo; local staff cancellation can still release checkout without asserting provider cancellation. A confirmed paid receipt with `review_required=True` retains the payment but needs manual business resolution (for example, a late receipt after staff cancellation or a deleted member). After resolving it, **Acknowledge paid receipt after manual review** records the Owner and time without extending membership or creating another payment. Financial review is separate from permission to cancel a staff workflow. There is no seeded Owner or default password; create your Owner explicitly with `createsuperuser`. Record only provider/local IDs, timestamps, and outcomes in diagnostics.
 
 WhiteNoise serves collected CSS/JS under Gunicorn with `DJANGO_DEBUG=False`. Existing media uploads continue through Django for this small deployment; a reverse proxy or object storage can replace that route separately. Keep the Gunicorn origin private to the trusted tunnel/proxy so clients cannot forge forwarded HTTPS headers.
 
