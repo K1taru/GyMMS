@@ -36,9 +36,9 @@ function checkout(changes = {}) {
         can_cancel: true, payment: null, test_mode: true, message: 'Ready', ...changes};
 }
 
-async function widget({current = checkout(), saved = null} = {}) {
+async function widget({current = checkout(), saved = null, reducedMotion = false} = {}) {
     const ids = ['widget', 'overlay', 'dialog', 'floating', 'notice', 'minimize', 'cancel',
-        'dismiss', 'title', 'summary', 'message', 'image-area', 'expiry'];
+        'dismiss', 'title', 'summary', 'message', 'image-area', 'expiry', 'visual', 'autoclose', 'close-label'];
     const elements = Object.fromEntries(ids.map(id => [id, element()]));
     const root = elements.widget;
     root.dataset.userId = 'staff';
@@ -48,11 +48,13 @@ async function widget({current = checkout(), saved = null} = {}) {
         activeElement: element(), getElementById: id => id === 'gymqr-widget' ? root : elements[id.replace('gymqr-', '')],
         querySelector: () => ({value: 'csrf-fixture'}), createElement: () => element(),
     });
-    const states = [], calls = [], intervals = new Map(), storage = new Map();
+    const states = [], events = [], calls = [], intervals = new Map(), storage = new Map(), timers = new Map();
+    let clock = 0, timerId = 0;
     if (saved) storage.set(prefix + 'attempt', saved.id);
     const server = {current, detail: saved, cancel: null, created: checkout()};
     const window = Object.assign(element(), {
-        dispatchEvent(event) { states.push(event.detail); },
+        dispatchEvent(event) { states.push(event.detail); events.push(event); },
+        matchMedia: () => ({matches: reducedMotion}),
     });
     runInNewContext(source, {
         document, window, crypto: {randomUUID}, URL, Date,
@@ -62,7 +64,9 @@ async function widget({current = checkout(), saved = null} = {}) {
             removeItem: key => storage.delete(key),
         },
         CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } },
-        setInterval: (fn, ms) => intervals.set(ms, fn), setTimeout: () => 1, clearTimeout() {},
+        setInterval: (fn, ms) => intervals.set(ms, fn),
+        setTimeout: (fn, ms) => { const id = ++timerId; timers.set(id, {fn, at:clock + ms}); return id; },
+        clearTimeout: id => timers.delete(id),
         fetch: async (url, options) => {
             calls.push({url, options});
             let attempt;
@@ -77,7 +81,16 @@ async function widget({current = checkout(), saved = null} = {}) {
         },
     });
     await document.emit('DOMContentLoaded');
-    return {elements, window, document, storage, server, calls, states, background,
+    return {elements, window, document, storage, server, calls, states, events, background,
+        advance: async ms => {
+            const target = clock + ms;
+            while (true) {
+                const next = [...timers].filter(([, timer]) => timer.at <= target).sort((a, b) => a[1].at - b[1].at)[0];
+                if (!next) break;
+                clock = next[1].at; timers.delete(next[0]); next[1].fn(); await flush();
+            }
+            clock = target;
+        },
         poll: async () => { await intervals.get(3000)(); await flush(); }};
 }
 
@@ -86,6 +99,7 @@ test('confirmed cancellation clears modal, floating badge and storage, and permi
     assert.equal(w.window.GymQRPayment.unresolved, true);
     w.server.cancel = {...w.server.current, status: 'cancelled', is_unresolved: false, can_cancel: false};
     await w.elements.cancel.emit('click');
+    await w.advance(180);
     assert.equal(w.window.GymQRPayment.unresolved, false);
     assert.equal(w.elements.overlay.hidden, true);
     assert.equal(w.elements.floating.hidden, true);
@@ -117,6 +131,7 @@ test('unconfirmed cancellation stays unresolved until worker confirms cancellati
     w.server.current = null;
     await w.poll();
     assert.equal(w.window.GymQRPayment.unresolved, false);
+    await w.advance(180);
     assert.equal(w.elements.overlay.hidden, true);
     assert.equal(w.elements.floating.hidden, true);
 });
@@ -124,6 +139,7 @@ test('unconfirmed cancellation stays unresolved until worker confirms cancellati
 test('provider-confirmed expiry clears a minimized cancellation after polling', async () => {
     const w = await widget({current: checkout({status: 'cancel_requested', can_cancel: false})});
     w.window.GymQRPayment.minimize();
+    await w.advance(180);
     assert.equal(w.elements.floating.hidden, false);
     w.server.detail = {...w.server.current, status: 'expired', is_unresolved: false};
     w.server.current = null;
@@ -153,4 +169,117 @@ test('a payment that wins the cancellation race keeps its completed receipt visi
     assert.equal(w.elements.title.textContent, 'Payment completed');
     assert.equal(w.elements.dismiss.hidden, false);
     assert.equal(w.storage.get(prefix + 'attempt'), w.server.cancel.id);
+});
+
+test('success stays visible for five seconds across polls, then fades out and restores focus', async () => {
+    const w = await widget();
+    w.server.current = {...w.server.current, status:'completed', is_unresolved:false, payment:{id:'receipt'}};
+    await w.poll();
+    assert.equal(w.elements.visual.dataset.state, 'completed');
+    assert.equal(w.elements.autoclose.hidden, false);
+    await w.advance(3000);
+    await w.poll();
+    await w.advance(1999);
+    assert.equal(w.elements.overlay.dataset.closing, 'false');
+    await w.advance(1);
+    assert.equal(w.elements.overlay.hidden, false);
+    assert.equal(w.elements.overlay.dataset.closing, 'true');
+    assert.equal(w.elements.title.textContent, 'Payment completed');
+    assert.equal(w.background.inert, true);
+    await w.advance(180);
+    assert.equal(w.elements.overlay.hidden, true);
+    assert.equal(w.background.inert, false);
+    assert.equal(w.document.activeElement.focused, true);
+    assert.equal(w.elements.floating.hidden, true);
+    assert.equal(w.storage.has(prefix + 'attempt'), false);
+    assert.equal(w.events.filter(event => event.type === 'gymms:payment-completed').length, 1);
+    w.server.current = null;
+    await w.poll();
+    assert.equal(w.elements.overlay.hidden, true);
+});
+
+test('confirmed failure auto-closes; unresolved failure and owner review stay available', async () => {
+    for (const changes of [
+        {status:'failed', is_unresolved:false, review_required:false},
+        {status:'failed', is_unresolved:true, review_required:false},
+        {status:'completed', is_unresolved:false, review_required:true},
+        {status:'needs_review', is_unresolved:true, review_required:true},
+    ]) {
+        const w = await widget({current:checkout(changes)});
+        const shouldClose = changes.status === 'failed' && !changes.is_unresolved;
+        assert.equal(w.elements.autoclose.hidden, !shouldClose);
+        await w.advance(5180);
+        assert.equal(w.elements.overlay.hidden, shouldClose);
+        assert.equal(w.storage.has(prefix + 'attempt'), !shouldClose);
+    }
+});
+
+test('polling preserves the QR image node', async () => {
+    const w = await widget({current:checkout({test_mode:false, qr_image:'data:image/png;base64,YQ=='})});
+    const image = w.elements['image-area'].children[0];
+    assert.ok(image);
+    await w.poll();
+    assert.equal(w.elements['image-area'].children[0], image);
+});
+
+test('reopening during exit cancels hiding and preserves background isolation', async () => {
+    const w = await widget();
+    w.window.GymQRPayment.minimize();
+    await w.advance(90);
+    w.window.GymQRPayment.reopen();
+    await w.advance(180);
+    assert.equal(w.elements.overlay.hidden, false);
+    assert.equal(w.elements.overlay.dataset.closing, 'false');
+    assert.equal(w.background.inert, true);
+});
+
+test('a fresh checkout cancels the previous result timer', async () => {
+    const w = await widget({current:checkout({status:'completed', is_unresolved:false})});
+    await w.advance(4000);
+    await w.window.GymQRPayment.start(new FormData());
+    await w.advance(1180);
+    assert.equal(w.window.GymQRPayment.unresolved, true);
+    assert.equal(w.elements.overlay.hidden, false);
+    assert.equal(w.elements.title.textContent, 'QR Ph ready');
+});
+
+test('cash results use the same timer without polling historical QR attempts', async () => {
+    const w = await widget({current:null});
+    assert.equal(w.window.GymQRPayment.showResult({success:false, message:'Payment could not be processed.'}), true);
+    assert.equal(w.elements.visual.dataset.state, 'failed');
+    const count = w.calls.length;
+    await w.poll();
+    assert.equal(w.calls.length, count);
+    await w.advance(5180);
+    assert.equal(w.elements.overlay.hidden, true);
+});
+
+test('cash results cannot replace an unresolved QR payment', async () => {
+    const w = await widget();
+    assert.equal(w.window.GymQRPayment.showResult({success:true, message:'Cash received.'}), false);
+    assert.equal(w.elements.title.textContent, 'QR Ph ready');
+    assert.equal(w.window.GymQRPayment.unresolved, true);
+});
+
+test('reduced motion closes immediately after the five-second result period', async () => {
+    const w = await widget({current:checkout({status:'completed', is_unresolved:false}), reducedMotion:true});
+    await w.advance(4999);
+    assert.equal(w.elements.overlay.hidden, false);
+    await w.advance(1);
+    assert.equal(w.elements.overlay.hidden, true);
+    assert.equal(w.background.inert, false);
+});
+
+test('a terminal result reopens a minimized QR payment for its result animation', async () => {
+    const w = await widget();
+    w.window.GymQRPayment.minimize();
+    await w.advance(180);
+    w.server.current = {...w.server.current, status:'failed', is_unresolved:false};
+    await w.poll();
+    assert.equal(w.elements.overlay.hidden, false);
+    assert.equal(w.elements.visual.dataset.state, 'failed');
+    assert.equal(w.elements.autoclose.hidden, false);
+    assert.equal(w.elements.floating.hidden, true);
+    await w.advance(5180);
+    assert.equal(w.elements.overlay.hidden, true);
 });

@@ -4,11 +4,24 @@
 <div id="gymqr-widget" data-user-id="{{ user.pk }}">
     <div id="gymqr-overlay" hidden>
         <section id="gymqr-dialog" role="dialog" aria-modal="true" aria-labelledby="gymqr-title" aria-describedby="gymqr-message" tabindex="-1">
+            <div id="gymqr-visual" aria-hidden="true" data-state="preparing">
+                <span class="gymqr-halo"></span>
+                <svg viewBox="0 0 80 80" fill="none">
+                    <circle class="gymqr-ring" cx="40" cy="40" r="30" />
+                    <path class="gymqr-check" d="m25 40 10 10 21-22" />
+                    <path class="gymqr-cross" d="m30 30 20 20m0-20L30 50" />
+                    <path class="gymqr-review" d="M40 25v19m0 10v1" />
+                </svg>
+            </div>
             <div class="gymqr-heading"><h2 id="gymqr-title">Preparing QR</h2><button type="button" id="gymqr-minimize" aria-label="Minimize QR payment">−</button></div>
             <p id="gymqr-summary"></p>
             <p id="gymqr-message" role="status" aria-live="polite"></p>
             <div id="gymqr-image-area"></div>
             <p id="gymqr-expiry"></p>
+            <div id="gymqr-autoclose" hidden>
+                <p id="gymqr-close-label">Closing in 5 seconds</p>
+                <div class="gymqr-close-track" aria-hidden="true"><span></span></div>
+            </div>
             <p class="gymqr-hint">You can minimize this window and keep working. Payment confirmation continues even when the browser is closed.</p>
             <div class="gymqr-actions"><button type="button" id="gymqr-cancel" hidden>Cancel payment</button><button type="button" id="gymqr-dismiss" hidden>Dismiss</button></div>
         </section>

@@ -16,6 +16,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectedMember = null;
     let isSubmitting = false; // Track submission state to prevent double-clicks
 
+    function showPaymentResult(success, message) {
+        if (window.GymQRPayment && window.GymQRPayment.showResult({success, message})) return;
+        if (typeof showNotification === 'function') showNotification(message, success ? 'success' : 'error');
+        else alert(message);
+    }
+
     // ===== MEMBER SEARCH AUTOCOMPLETE =====
     
     memberSearchInput.addEventListener('input', function() {
@@ -303,13 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 console.log('[PAYMENT] Payment successful, showing notification');
                 
-                // Check if showNotification exists
-                if (typeof showNotification === 'function') {
-                    showNotification(data.message, 'success');
-                } else {
-                    console.error('[PAYMENT] showNotification is not defined!');
-                    alert(data.message); // Fallback to alert
-                }
+                showPaymentResult(true, data.message || 'Payment completed successfully.');
                 
                 // Reset form to default state
                 paymentForm.reset();
@@ -343,16 +343,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('[PAYMENT] Walk-in detected, redirecting to dashboard');
                     setTimeout(() => {
                         window.location.href = '/dashboard/';
-                    }, 1500);
+                    }, 5240);
                 }
             } else {
                 console.log('[PAYMENT] Payment failed:', data.message);
                 
-                if (typeof showNotification === 'function') {
-                    showNotification(data.message || 'Payment processing failed', 'error');
-                } else {
-                    alert(data.message || 'Payment processing failed');
-                }
+                showPaymentResult(false, data.message || 'Payment processing failed');
                 
                 // Restore button state
                 isSubmitting = false;
@@ -362,11 +358,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.error('[PAYMENT] Error processing payment:', error);
             
-            if (typeof showNotification === 'function') {
-                showNotification(error.message || 'An error occurred while processing payment', 'error');
-            } else {
-                alert(error.message || 'An error occurred while processing payment');
-            }
+            showPaymentResult(false, error.message || 'An error occurred while processing payment');
             
             // Restore button state
             isSubmitting = false;
