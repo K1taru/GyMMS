@@ -28,7 +28,7 @@ sudo install -d -o root -g root -m 0700 /etc/gymms /var/lib/gymms-deploy /var/li
 sudo install -o root -g root -m 0755 scripts/deploy.sh /usr/local/sbin/gymms-deploy
 sudo install -o root -g root -m 0600 deploy/deploy.conf.example /etc/gymms/deploy.conf
 sudo install -o root -g root -m 0600 docker-compose.yml /etc/gymms/compose.yml
-sudo install -o root -g root -m 0644 deploy/gymms-deploy.service deploy/gymms-deploy.timer /etc/systemd/system/
+sudo install -o root -g root -m 0644 deploy/gymms-cd-ci.service deploy/gymms-cd-ci.timer /etc/systemd/system/
 sudoedit /etc/gymms/deploy.conf
 ```
 
@@ -60,16 +60,16 @@ Once GitHub has published a signed production image, run one supervised deployme
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl start gymms-deploy.service
-sudo journalctl -u gymms-deploy.service -n 80 --no-pager
+sudo systemctl start gymms-cd-ci.service
+sudo journalctl -u gymms-cd-ci.service -n 80 --no-pager
 sudo cat /var/lib/gymms-deploy/current
 ```
 
 Confirm login, uploads, receipts, and worker behavior, then enable automatic polling:
 
 ```bash
-sudo systemctl enable --now gymms-deploy.timer
-systemctl list-timers gymms-deploy.timer
+sudo systemctl enable --now gymms-cd-ci.timer
+systemctl list-timers gymms-cd-ci.timer
 ```
 
 Each release has a short downtime window while web/worker stop for backup and migration. Worker startup confirms a running process, not PayMongo connectivity. Unchanged image digests are skipped. The agent rejects a different digest with an older/equal signed workflow run number, preventing ordinary replay after a successful deployment. Keep the state file; losing it also loses this replay history. To roll back code, merge a reviewed revert so a new workflow run produces a new signed release. Signatures establish origin and integrity; they do not prove the application code is harmless or prevent a compromised authorized GitHub workflow from publishing malicious code.
@@ -85,8 +85,8 @@ The host's Compose file, script, database pin, and systemd units are updated man
 If signature validation, registry access, image download, or preflight fails, applications keep running. The next timer invocation may retry. If a failure or interruption occurs after the agent creates `/var/lib/gymms-deploy/blocked`, automatic releases remain blocked, including newer releases, until an administrator handles recovery. This prevents repeated migrations/restarts after a partially applied release. A backup may be incomplete if its creation failed.
 
 ```bash
-sudo systemctl stop gymms-deploy.timer
-sudo journalctl -u gymms-deploy.service -n 100 --no-pager
+sudo systemctl stop gymms-cd-ci.timer
+sudo journalctl -u gymms-cd-ci.service -n 100 --no-pager
 sudo cat /var/lib/gymms-deploy/blocked
 ```
 
@@ -96,11 +96,11 @@ After the underlying issue is corrected and the intended recovery/retry is revie
 
 ```bash
 sudo rm -- /var/lib/gymms-deploy/blocked
-sudo systemctl start gymms-deploy.service
-sudo journalctl -u gymms-deploy.service -n 80 --no-pager
-sudo systemctl start gymms-deploy.timer
+sudo systemctl start gymms-cd-ci.service
+sudo journalctl -u gymms-cd-ci.service -n 80 --no-pager
+sudo systemctl start gymms-cd-ci.timer
 ```
 
-Configure host monitoring to alert on failed `gymms-deploy.service` runs; the outbound deployment does not report success/failure back to GitHub. To stop automatic releases, stop/disable the timer. If you previously configured deployment SSH secrets, remove those unused secrets and revoke the dedicated deployment key after confirming the timer works. Administrative SSH access can remain governed by your normal host policy.
+Configure host monitoring to alert on failed `gymms-cd-ci.service` runs; the outbound deployment does not report success/failure back to GitHub. To stop automatic releases, stop/disable the timer. If you previously configured deployment SSH secrets, remove those unused secrets and revoke the dedicated deployment key after confirming the timer works. Administrative SSH access can remain governed by your normal host policy.
 
 Implementation references: [Docker multi-platform CI](https://docs.docker.com/build/ci/github-actions/multi-platform/), [Sigstore identity verification](https://docs.sigstore.dev/cosign/verifying/verify/), and [GitHub deployment environments](https://docs.github.com/en/actions/concepts/workflows-and-actions/deployment-environments).

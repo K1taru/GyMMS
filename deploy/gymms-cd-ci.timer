@@ -1,11 +1,11 @@
 [Unit]
-Description=Check for signed GyMMS releases every five minutes
+Description=Check for signed GyMMS CI/CD releases every five minutes
 
 [Timer]
 OnBootSec=2min
 OnUnitInactiveSec=5min
 RandomizedDelaySec=30s
-Unit=gymms-deploy.service
+Unit=gymms-cd-ci.service
 
 [Install]
 WantedBy=timers.target
