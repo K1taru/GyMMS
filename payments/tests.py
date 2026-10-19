@@ -416,6 +416,92 @@ class EndpointTests(Fixtures, TestCase):
             self.assertContains(response, 'qr_payment.js')
 
 
+class CashPasswordTests(Fixtures, TestCase):
+    def setUp(self):
+        super().setUp()
+        self.staff.set_password('staff-cash-password')
+        self.staff.save()
+        self.owner.set_password('owner-cash-password')
+        self.owner.save()
+        self.client.force_login(self.staff)
+
+    def assert_no_cash_side_effects(self):
+        from payments.models import CashPaymentRequest
+        self.assertFalse(Payment.objects.exists())
+        self.assertFalse(CashPaymentRequest.objects.exists())
+        self.member.refresh_from_db()
+        self.assertFalse(self.member.is_active)
+        self.assertEqual(self.member.membership_fee, 0)
+        self.assertEqual(self.member.end_date, timezone.localdate())
+
+    def test_missing_empty_and_invalid_passwords_do_not_process_cash(self):
+        for password in (None, '', 123, [], {}):
+            with self.subTest(password=password):
+                response = self.client.post('/payments/process/',
+                    json.dumps(self.data(cash_password=password)), content_type='application/json')
+                self.assertEqual(response.status_code, 400)
+                self.assertFalse(response.json()['success'])
+                self.assert_no_cash_side_effects()
+
+    def test_wrong_password_and_other_users_password_are_rejected(self):
+        for password in ('incorrect', 'owner-cash-password'):
+            with self.subTest(password=password):
+                response = self.client.post('/payments/process/', self.data(cash_password=password))
+                self.assertEqual(response.status_code, 403)
+                self.assertFalse(response.json()['success'])
+                self.assert_no_cash_side_effects()
+
+    def test_staff_and_owner_can_authorize_their_own_cash_payments(self):
+        for user, password in ((self.staff, 'staff-cash-password'), (self.owner, 'owner-cash-password')):
+            with self.subTest(role=user.role):
+                self.client.force_login(user)
+                response = self.client.post('/payments/process/', self.data(cash_password=password))
+                self.assertEqual(response.status_code, 200)
+                payment = Payment.objects.get(pk=response.json()['payment_id'])
+                self.assertEqual(payment.processed_by, user)
+                self.assertEqual(payment.status, 'Completed')
+                self.assertEqual(payment.remarks, '')
+        self.assertEqual(Payment.objects.count(), 2)
+
+    def test_walkin_cash_requires_password_and_accepts_correct_password(self):
+        data = self.data(member_id='GYMMSGUEST', guest_name='Guest')
+        self.assertEqual(self.client.post('/payments/process/', data).status_code, 400)
+        self.assert_no_cash_side_effects()
+        data['cash_password'] = 'staff-cash-password'
+        response = self.client.post('/payments/process/', data)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['is_walkin'])
+        self.assertEqual(Payment.objects.get().processed_by, self.staff)
+
+    def test_retries_require_password_and_do_not_duplicate_payment(self):
+        data = self.data(cash_password='staff-cash-password')
+        first = self.client.post('/payments/process/', data)
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(self.client.post('/payments/process/',
+            dict(data, cash_password='')).status_code, 400)
+        again = self.client.post('/payments/process/', data)
+        self.assertEqual(again.status_code, 200)
+        self.assertEqual(first.json()['payment_id'], again.json()['payment_id'])
+        self.assertEqual(Payment.objects.count(), 1)
+
+    def test_json_password_preserves_whitespace(self):
+        self.staff.set_password('  cash password  ')
+        self.staff.save()
+        self.client.force_login(self.staff)
+        response = self.client.post('/payments/process/',
+            json.dumps(self.data(cash_password='  cash password  ')), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+
+    def test_password_does_not_bypass_authentication_or_csrf(self):
+        data = self.data(cash_password='staff-cash-password')
+        self.client.logout()
+        self.assertEqual(self.client.post('/payments/process/', data).status_code, 401)
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.staff)
+        self.assertEqual(csrf_client.post('/payments/process/', data).status_code, 403)
+        self.assert_no_cash_side_effects()
+
+
 @override_settings(**CONFIG)
 class PostgreSQLConcurrencyTests(Fixtures, TransactionTestCase):
     @skipUnlessDBFeature('has_select_for_update')

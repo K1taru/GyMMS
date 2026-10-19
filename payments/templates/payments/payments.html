@@ -6,7 +6,7 @@
 	<meta name="viewport" content="width=device-width,initial-scale=1">
 	<title>Payment Processing | GyMMS</title>
 	<link rel="stylesheet" href="{% static 'core/css/index.css' %}">
-	<link rel="stylesheet" href="{% static 'payments/css/payments.css' %}?v=2.3">
+	<link rel="stylesheet" href="{% static 'payments/css/payments.css' %}?v=2.4">
 </head>
 <body>
 	{% include 'core/navbar.html' %}
@@ -133,6 +133,13 @@
 								</div>
 							</div>
 
+							<div class="form-section" id="cashPasswordSection" hidden>
+								<label for="cash_password">Confirm Your Password</label>
+								<input type="password" id="cash_password" name="cash_password"
+								       autocomplete="current-password" aria-describedby="cashPasswordHelp" disabled>
+								<p id="cashPasswordHelp">Enter your signed-in account's password to authorize this cash payment.</p>
+							</div>
+
 			<!-- Remarks -->
 							<div class="form-section">
 								<label for="remarks">Remarks (Optional)</label>
@@ -230,7 +237,7 @@
 	</main>
 
 	<script defer src="{% static 'core/js/input-validator.js' %}"></script>
-	<script defer src="{% static 'payments/js/payments.js' %}?v=3.4"></script>
+	<script defer src="{% static 'payments/js/payments.js' %}?v=3.5"></script>
 	<script defer src="{% static 'payments/js/payments_walkin.js' %}"></script>
 </body>
 </html>

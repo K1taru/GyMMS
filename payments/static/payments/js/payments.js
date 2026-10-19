@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const memberInfoCard = document.getElementById('memberInfoCard');
     const paymentForm = document.getElementById('paymentForm');
     const paymentMethodSelect = document.getElementById('payment_method');
+    const cashPasswordSection = document.getElementById('cashPasswordSection');
+    const cashPasswordInput = document.getElementById('cash_password');
     const paymentSearchInput = document.getElementById('paymentSearchInput');
 
     let searchTimeout = null;
@@ -169,8 +171,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ===== PAYMENT METHOD HANDLING =====
     
+    function syncCashPasswordField() {
+        const isCash = paymentMethodSelect.value === 'Cash';
+        cashPasswordSection.hidden = !isCash;
+        cashPasswordInput.disabled = !isCash;
+        cashPasswordInput.required = isCash;
+        cashPasswordInput.value = '';
+    }
+    syncCashPasswordField();
     paymentMethodSelect.addEventListener('change', function() {
+        syncCashPasswordField();
         document.getElementById('submitBtn').textContent = this.value === 'QRPh' ? 'Prepare QR Ph payment' : 'Process Cash Payment';
+    });
+    paymentForm.addEventListener('reset', function() {
+        cashPasswordInput.value = '';
+        cashPasswordInput.required = false;
+        cashPasswordInput.disabled = true;
+        cashPasswordSection.hidden = true;
     });
     let cashRequestKey = null;
     const completedPayments = new Set();
@@ -252,6 +269,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Prepare form data
         const formData = new FormData(paymentForm);
+        // Keep the password only in this request, never in retained form state.
+        cashPasswordInput.value = '';
         cashRequestKey = cashRequestKey || crypto.randomUUID();
         formData.set('request_key', cashRequestKey);
         

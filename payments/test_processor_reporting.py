@@ -17,12 +17,16 @@ from payments.tests import CONFIG, Fixtures
 @override_settings(**CONFIG)
 class ProcessorAttributionTests(Fixtures, TestCase):
     def test_cash_members_and_walkins_ignore_spoofed_processor_and_keep_retry_identity(self):
+        self.staff.set_password('staff-cash-password')
+        self.staff.save()
+        self.client.force_login(self.staff)
         for customer in (self.member.member_id, 'GYMMSGUEST'):
             with self.subTest(customer=customer):
                 self.staff.name = 'Original Name'
                 self.staff.save()
                 data = self.data(member_id=customer, processed_by=self.owner.pk,
-                                 stored_processor_id=self.owner.pk, stored_processor_name='Spoofed')
+                                 stored_processor_id=self.owner.pk, stored_processor_name='Spoofed',
+                                 cash_password='staff-cash-password')
                 response = self.client.post('/payments/process/', data)
                 self.assertEqual(response.status_code, 200)
                 payment = Payment.objects.get(pk=response.json()['payment_id'])

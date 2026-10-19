@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Q
 from django.core.paginator import Paginator
+from django.views.decorators.debug import sensitive_post_parameters, sensitive_variables
 from memberships.models import Member
 from .models import Payment, MembershipPricing
 
@@ -80,13 +81,22 @@ def request_data(request):
 
 
 @staff_endpoint
+@sensitive_post_parameters('cash_password')
+@sensitive_variables('data', 'password')
 def process_payment(request):
     from .services.fulfillment import process_cash, serialize_payment, CheckoutError
     from django.db import IntegrityError
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': 'POST required.'}, status=405)
     try:
-        payment, end_date = process_cash(request.user, request_data(request))
+        data = request_data(request)
+        if data.get('payment_method') == 'Cash':
+            password = data.get('cash_password')
+            if not isinstance(password, str) or not password:
+                raise CheckoutError('Enter your password to authorize this cash payment.')
+            if not request.user.check_password(password):
+                raise CheckoutError('Incorrect password. Enter the password for your signed-in account.', 403)
+        payment, end_date = process_cash(request.user, data)
         is_walkin = payment.stored_member_id == 'GYMMSGUEST'
         message = 'Cash payment processed successfully.'
         return JsonResponse({'success': True, 'message': message, 'payment_id': str(payment.pk),
