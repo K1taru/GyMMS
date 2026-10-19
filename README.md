@@ -119,6 +119,12 @@ python manage.py makemigrations --check --dry-run --settings=config.test_setting
 python manage.py test --settings=config.test_settings
 ```
 
+Run the QR payment widget cancellation/recovery checks with Node.js:
+
+```bash
+node --test --test-isolation=none tests/js/qr_payment.test.cjs
+```
+
 SQLite does not exercise PostgreSQL locking/concurrency. Use a dedicated disposable PostgreSQL cluster and a test role allowed to create databases. Set these test-specific values locally; never use production credentials:
 
 ```bash

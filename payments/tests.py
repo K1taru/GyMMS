@@ -272,6 +272,89 @@ class LifecycleTests(Fixtures, TestCase):
         self.assertFalse(attempt.is_unresolved)
         self.assertFalse(Payment.objects.exists())
 
+    def test_confirmed_cancellation_clears_review_and_allows_fresh_checkout(self):
+        attempt = self.ready()
+        OnlinePaymentAttempt.objects.filter(pk=attempt.pk).update(review_required=True)
+        qrph.request_cancel(attempt.pk)
+        attempt.refresh_from_db()
+        client, _, _ = self.provider(attempt, 'cancelled')
+        qrph.reconcile_attempt(attempt.pk, client=client)
+        attempt.refresh_from_db()
+        self.assertEqual(attempt.status, 'cancelled')
+        self.assertFalse(attempt.review_required)
+        self.assertEqual(attempt.qr_image, '')
+        self.assertEqual(attempt.test_url, '')
+        self.assertIsNone(self.client.get('/payments/qrph/current/').json()['attempt'])
+        replacement = self.attempt()
+        self.assertNotEqual(attempt.pk, replacement.pk)
+        self.assertTrue(OnlinePaymentAttempt.objects.filter(pk=attempt.pk).exists())
+        self.assertFalse(Payment.objects.exists())
+
+    def test_rejected_cancellation_keeps_checking_until_provider_expiry(self):
+        attempt = self.ready()
+        qrph.request_cancel(attempt.pk)
+        attempt.refresh_from_db()
+        client, _, _ = self.provider(attempt)
+        client.cancel_intent.side_effect = ProviderError(retryable=False)
+        qrph.reconcile_attempt(attempt.pk, client=client)
+        attempt.refresh_from_db()
+        self.assertEqual(attempt.status, 'cancel_requested')
+        self.assertFalse(attempt.review_required)
+        self.assertIn('Cancellation is not confirmed', attempt.message)
+        self.assertLessEqual((attempt.next_retry_at - timezone.now()).total_seconds(), 60)
+        with self.assertRaises(CheckoutError):
+            self.attempt()
+        _, intent, _ = self.provider(attempt, 'awaiting_payment_method')
+        intent['attributes'].update(next_action=None, last_payment_error={'code': 'qrph_expired'})
+        client.retrieve_intent.return_value = intent
+        qrph.reconcile_attempt(attempt.pk, client=client)
+        attempt.refresh_from_db()
+        self.assertEqual(attempt.status, 'expired')
+        self.assertFalse(attempt.is_unresolved)
+        qrph.reconcile_attempt(attempt.pk, client=client)
+        attempt.refresh_from_db()
+        self.assertEqual(attempt.status, 'expired')
+        self.assertFalse(attempt.review_required)
+        self.attempt()
+
+    def test_timed_out_cancellation_recovers_verified_expiry_before_countdown(self):
+        attempt = self.ready()
+        qrph.request_cancel(attempt.pk)
+        attempt.refresh_from_db()
+        client, _, _ = self.provider(attempt)
+        client.cancel_intent.side_effect = ProviderError(uncertain=True)
+        qrph.reconcile_attempt(attempt.pk, client=client)
+        attempt.refresh_from_db()
+        self.assertEqual(attempt.pending_operation, 'cancel_intent')
+        _, intent, _ = self.provider(attempt, 'awaiting_payment_method')
+        intent['attributes'].update(next_action=None, last_payment_error={'code': 'qrph_expired'})
+        client.retrieve_intent.return_value = intent
+        qrph.reconcile_attempt(attempt.pk, client=client)
+        attempt.refresh_from_db()
+        self.assertEqual(attempt.status, 'expired')
+        self.assertEqual(attempt.pending_operation, '')
+        self.assertFalse(attempt.review_required)
+        self.assertEqual(client.cancel_intent.call_count, 1)
+        self.attempt()
+
+    def test_cancel_during_worker_read_is_rechecked_promptly(self):
+        attempt = self.ready()
+        client, intent, _ = self.provider(attempt)
+        client.retrieve_intent.side_effect = lambda _: (qrph.request_cancel(attempt.pk), intent)[1]
+        qrph.reconcile_attempt(attempt.pk, client=client)
+        attempt.refresh_from_db()
+        self.assertEqual(attempt.status, 'cancelled')
+        self.assertFalse(attempt.is_unresolved)
+
+    def test_release_prioritizes_cancel_requested_during_worker_network_call(self):
+        attempt = self.ready()
+        claim = qrph._claim(OnlinePaymentAttempt, attempt.pk)
+        qrph.request_cancel(attempt.pk)
+        qrph._release(claim)
+        attempt.refresh_from_db()
+        self.assertEqual(attempt.status, 'cancel_requested')
+        self.assertLessEqual((attempt.next_retry_at - timezone.now()).total_seconds(), 3)
+
     def test_processing_payment_wins_cancellation_race(self):
         attempt = self.ready()
         qrph.request_cancel(attempt.pk)
@@ -359,6 +442,36 @@ class LifecycleTests(Fixtures, TestCase):
 
 @override_settings(**CONFIG)
 class EndpointTests(Fixtures, TestCase):
+    def test_cancel_returns_confirmed_state_and_releases_checkout(self):
+        attempt = self.ready()
+        client, _, _ = self.provider(attempt)
+        with patch('payments.services.qrph.PayMongoClient', return_value=client):
+            response = self.client.post(f'/payments/qrph/attempts/{attempt.pk}/cancel/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['attempt']['status'], 'cancelled')
+        self.assertFalse(response.json()['attempt']['is_unresolved'])
+        self.assertEqual(self.client.post('/payments/qrph/attempts/', self.data()).status_code, 202)
+
+    def test_cancel_while_worker_owns_checkout_returns_pending_without_duplicate_call(self):
+        attempt = self.ready()
+        claim = qrph._claim(OnlinePaymentAttempt, attempt.pk)
+        with patch('payments.services.qrph.PayMongoClient') as provider:
+            response = self.client.post(f'/payments/qrph/attempts/{attempt.pk}/cancel/')
+        self.assertEqual(response.json()['attempt']['status'], 'cancel_requested')
+        provider.assert_not_called()
+        self.assertEqual(self.client.post('/payments/qrph/attempts/', self.data()).status_code, 409)
+        qrph._release(claim)
+
+    def test_cancel_racing_success_returns_paid_receipt_instead_of_cancellation(self):
+        attempt = self.ready()
+        client, _, _ = self.provider(attempt, 'succeeded')
+        with patch('payments.services.qrph.PayMongoClient', return_value=client):
+            response = self.client.post(f'/payments/qrph/attempts/{attempt.pk}/cancel/')
+        self.assertEqual(response.json()['attempt']['status'], 'completed')
+        self.assertIsNotNone(response.json()['attempt']['payment'])
+        self.assertEqual(Payment.objects.count(), 1)
+        client.cancel_intent.assert_not_called()
+
     def test_create_resume_permissions_and_csrf(self):
         response = self.client.post('/payments/qrph/attempts/', self.data())
         self.assertEqual(response.status_code, 202)
