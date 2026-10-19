@@ -79,6 +79,10 @@
 
 /* Close Button */
 .delete-modal-close {
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+	z-index: 1;
 	background: none;
 	border: none;
 	font-size: 1.75rem;
@@ -290,4 +294,9 @@
 		width: 100%;
 		justify-content: center;
 	}
+}
+
+/* Keep wrapped titles clear of the anchored close button at every screen size. */
+.delete-modal-header {
+    padding-right: 3.5rem;
 }

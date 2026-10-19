@@ -308,8 +308,9 @@ class ProcessorMigrationTests(TransactionTestCase):
         self.assertEqual(restored.stored_processor_name, 'Historic Staff')
         self.assertEqual(restored.stored_processor_username, 'historic')
         self.assertIsNone(Payment.objects.get(pk=unknown.pk).stored_processor_id)
-        from payments.models import OnlinePaymentAttempt
-        checkout = OnlinePaymentAttempt.objects.get(pk=attempt.pk)
+        # Query the schema at this historical migration, before later fields exist.
+        attempt_model = executor.loader.project_state(self.incremental).apps.get_model('payments', 'OnlinePaymentAttempt')
+        checkout = attempt_model.objects.get(pk=attempt.pk)
         self.assertEqual(checkout.stored_processor_id, user.pk)
         self.assertEqual(checkout.stored_processor_username, 'historic')
         # Later initialization must never overwrite snapshots with renamed account details.

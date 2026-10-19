@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const read = key => { try { return localStorage.getItem(prefix + key); } catch (_) { return null; } };
     const save = (key, value) => { try { value === null ? localStorage.removeItem(prefix + key) : localStorage.setItem(prefix + key, value); } catch (_) { /* Storage is optional. */ } };
     const uuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value || '');
+    const blocksCheckout = a => !!a && (a.blocks_checkout ?? a.is_unresolved);
     let attempt = null, busy = false, starting = false, minimized = read('minimized') === 'true';
     let returnFocus = null, previousOverflow = '', noticeTimer, terminalAnnounced = null, generation = 0;
     let inertElements = [], serverOffset = 0;
@@ -58,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         generation++;
         resetResult(); localResult = false;
         attempt = null; save('attempt', null);
+        el('image-area').replaceChildren(); imageKey = null;
         minimize(); render();
     }
     function csrf() { const field = document.querySelector('[name=csrfmiddlewaretoken]'); return field ? field.value : decodeURIComponent((document.cookie.match(/(?:^|; )csrftoken=([^;]*)/) || [,''])[1]); }
@@ -77,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function updateCountdown() {
         if (resultDeadline) el('close-label').textContent = `Closing in ${Math.max(1, Math.ceil((resultDeadline - Date.now()) / 1000))} seconds`;
-        if (!attempt || !attempt.is_unresolved || !attempt.expires_at) { el('expiry').textContent = ''; return; }
+        if (!blocksCheckout(attempt) || !attempt.expires_at) { el('expiry').textContent = ''; return; }
         const remaining = Math.ceil((Date.parse(attempt.expires_at) - Date.now() - serverOffset) / 1000);
         el('expiry').textContent = remaining > 0 ? `QR expires in ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}. Final status is confirmed by the provider.` : 'QR time elapsed — awaiting provider confirmation. Do not collect another payment until the status is confirmed.';
     }
@@ -123,9 +125,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         updateCountdown();
-        el('cancel').hidden = !a || !a.is_unresolved || a.can_cancel !== true || !!a.payment || !!a.provider_payment_id || a.status === 'cancel_requested';
+        el('cancel').hidden = !blocksCheckout(a) || a.can_cancel !== true || !!a.payment || !!a.provider_payment_id;
         el('cancel').disabled = busy || starting;
-        el('dismiss').hidden = starting || !!(a && a.is_unresolved);
+        el('dismiss').hidden = starting || blocksCheckout(a);
         el('floating').textContent = a ? `${titleFor(a)} — ${a.customer_name || 'Customer'} — ${a.currency || 'PHP'} ${a.amount || ''}` : 'Preparing QR';
         el('floating').hidden = !minimized || (!a && !starting);
         if (previousHeight && el('dialog').animate && !reducedMotion()) {
@@ -136,7 +138,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function update(a) {
         if (!a) return;
-        if (attempt && attempt.is_unresolved && attempt.id !== a.id && !a.is_unresolved) return;
+        if (blocksCheckout(attempt) && attempt.id !== a.id && !blocksCheckout(a)) return;
+        if (a.staff_cancelled_at) {
+            clearAttempt();
+            notice('Payment process cancelled. You can process another payment. Do not use the old QR code.');
+            return;
+        }
         if (!a.is_unresolved && !a.review_required && ['cancelled', 'expired'].includes(a.status)) {
             clearAttempt(); notice(titleFor(a));
             return;
@@ -163,12 +170,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.attempt) update(data.attempt);
             else { const id = attempt ? attempt.id : read('attempt'); if (uuid(id)) { const last = await request(`/payments/qrph/attempts/${id}/`); if (refreshGeneration === generation) update(last.attempt); } }
             if (attempt && !minimized && el('overlay').hidden) open();
-        } catch (_) { if (attempt && attempt.is_unresolved) { el('message').textContent = 'Connection interrupted. Payment remains pending; checking again automatically.'; } }
+        } catch (_) { if (blocksCheckout(attempt)) { el('message').textContent = 'Connection interrupted. Payment remains pending; checking again automatically.'; } }
         finally { busy = false; el('cancel').disabled = starting; }
     }
     window.GymQRPayment = {
         async start(formData) {
-            if (starting || (attempt && attempt.is_unresolved)) { open(); return; }
+            if (starting || blocksCheckout(attempt)) { open(); return; }
             // Let the API serialize concurrent requests and return the account's unresolved attempt.
             generation++; resetResult(); localResult = false; starting = true; attempt = null; open(); render();
             if (!formData.get('request_key')) formData.set('request_key', crypto.randomUUID());
@@ -176,17 +183,17 @@ document.addEventListener('DOMContentLoaded', () => {
             catch (error) {
                 if (!error.attempt && error.status === 409) { try { error.attempt = (await request('/payments/qrph/current/')).attempt; } catch (_) { /* Next poll retries restoration. */ } }
                 if (error.attempt) update(error.attempt); else { el('title').textContent = 'Unable to prepare QR'; el('message').textContent = error.message; el('dismiss').hidden = false; notice(error.message); } }
-            finally { starting = false; if (attempt) render(); el('dismiss').hidden = !!(attempt && attempt.is_unresolved); }
+            finally { starting = false; if (attempt) render(); el('dismiss').hidden = blocksCheckout(attempt); }
         },
         showResult({success, message, customerName = '', amount = ''}) {
-            if (starting || (attempt && attempt.is_unresolved)) return false;
+            if (starting || blocksCheckout(attempt)) return false;
             generation++; resetResult(); localResult = true;
             attempt = {status:success ? 'completed' : 'failed', is_unresolved:false, message,
                 customer_name:customerName, amount, currency:'PHP'};
             open(); render(); scheduleResult(attempt);
             return true;
         }, minimize, reopen:open,
-        get unresolved() { return starting || !!(attempt && attempt.is_unresolved); }
+        get unresolved() { return starting || blocksCheckout(attempt); }
     };
     el('minimize').addEventListener('click', minimize);
     el('floating').addEventListener('click', open);
@@ -200,19 +207,19 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
         }
     });
-    el('dismiss').addEventListener('click', () => { if (attempt && attempt.is_unresolved) return; clearAttempt(); });
+    el('dismiss').addEventListener('click', () => { if (blocksCheckout(attempt)) return; clearAttempt(); });
     el('cancel').addEventListener('click', async () => {
-        if (!attempt || !attempt.is_unresolved || attempt.can_cancel !== true || attempt.payment || attempt.provider_payment_id || busy || starting) return;
+        if (!blocksCheckout(attempt) || attempt.can_cancel !== true || attempt.payment || attempt.provider_payment_id || busy || starting) return;
         busy = true; render();
         try { update((await request(`/payments/qrph/attempts/${attempt.id}/cancel/`, {method:'POST', headers:{'X-CSRFToken':csrf()}})).attempt); }
-        catch (error) { if (error.attempt) update(error.attempt); notice(error.message + ' Payment remains unresolved until confirmed.'); }
+        catch (error) { if (error.attempt) update(error.attempt); notice(error.message + ' Cancellation was not confirmed by GyMMS. Checking again automatically.'); }
         finally { busy = false; render(); }
     });
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
     window.addEventListener('storage', event => {
         if (!event.key || !event.key.startsWith(prefix)) return;
-        if (event.key === prefix + 'attempt' && event.newValue === null && attempt && !attempt.is_unresolved) clearAttempt();
+        if (event.key === prefix + 'attempt' && event.newValue === null && attempt && !blocksCheckout(attempt)) clearAttempt();
         minimized = read('minimized') === 'true';
         if (minimized && !el('overlay').hidden) minimize();
         refresh();

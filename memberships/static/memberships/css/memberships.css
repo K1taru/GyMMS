@@ -604,6 +604,7 @@
 }
 
 .modal-content {
+    position: relative;
     background: white;
     border-radius: 12px;
     width: 90%;
@@ -640,6 +641,10 @@
 }
 
 .modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1;
     background: none;
     border: none;
     font-size: 1.75rem;
@@ -843,4 +848,9 @@
     .action-buttons {
         flex-direction: column;
     }
+}
+
+/* Keep wrapped titles clear of the anchored close button at every screen size. */
+.modal-header {
+    padding-right: 3.5rem;
 }

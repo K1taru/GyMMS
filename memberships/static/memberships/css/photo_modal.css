@@ -48,6 +48,7 @@
 
 /* Photo modal content - properly centered */
 .photo-modal-content {
+	position: relative;
 	background: #ffffff;
 	border-radius: 12px;
 	max-width: 450px;
@@ -89,6 +90,10 @@
 }
 
 .modal-close {
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+	z-index: 1;
 	background: none;
 	border: none;
 	font-size: 1.75rem;
@@ -293,4 +298,9 @@
 		max-width: 100%;
 		width: calc(100% - 20px);
 	}
+}
+
+/* Keep wrapped titles clear of the anchored close button at every screen size. */
+.modal-header {
+    padding-right: 3.5rem;
 }

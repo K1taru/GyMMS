@@ -24,7 +24,8 @@
     width: min(440px, 100%);
     max-height: calc(100dvh - 32px);
     overflow: auto;
-    padding: 24px;
+    /* Reserve a top row for the control, including states without a status icon. */
+    padding: 56px 24px 24px;
     border-radius: 24px;
     border-top: 4px solid var(--gymqr-green);
     box-shadow: 0 24px 80px #0004;
@@ -35,6 +36,7 @@
 #gymqr-dialog p { line-height: 1.5; margin: 12px 0; }
 .gymqr-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .gymqr-heading h2 { margin: 0; font-size: 1.4rem; }
+#gymqr-widget #gymqr-minimize { position: absolute; top: 12px; right: 12px; z-index: 1; padding: 4px 10px; }
 #gymqr-widget button {
     font: inherit;
     cursor: pointer;
@@ -83,7 +85,6 @@
 #gymqr-visual[data-state="review"] .gymqr-halo { background: #fffbeb; }
 #gymqr-dialog[data-result="true"] { text-align: center; }
 #gymqr-dialog[data-result="true"] .gymqr-heading { justify-content: center; }
-#gymqr-dialog[data-result="true"] #gymqr-minimize { position: absolute; top: 12px; right: 12px; padding: 4px 10px; }
 #gymqr-dialog[data-result="true"] .gymqr-hint { display: none; }
 #gymqr-dialog[data-result="true"] .gymqr-actions { justify-content: center; }
 #gymqr-dismiss { background: var(--gymqr-green) !important; color: white !important; min-width: 120px; }

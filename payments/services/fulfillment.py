@@ -7,7 +7,7 @@ from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from memberships.models import Member
-from payments.models import Payment, MembershipPricing, CashPaymentRequest, OnlinePaymentAttempt, UNRESOLVED_STATUSES
+from payments.models import Payment, MembershipPricing, CashPaymentRequest, OnlinePaymentAttempt
 
 
 class CheckoutError(Exception):
@@ -88,10 +88,10 @@ def process_cash(user, data):
         if existing.created_by_id != user.pk or existing.fingerprint != fingerprint:
             raise CheckoutError('Request key was already used for a different payment.', 409)
         return existing.payment, existing.new_end_date
-    if OnlinePaymentAttempt.objects.filter(created_by=user, status__in=UNRESOLVED_STATUSES).exists():
+    if OnlinePaymentAttempt.objects.blocking().filter(created_by=user).exists():
         raise CheckoutError('Resolve your current QRPh checkout before collecting Cash.', 409)
     member, pricing, name, remarks = checkout_snapshot(data)
-    if member and OnlinePaymentAttempt.objects.filter(member=member, status__in=UNRESOLVED_STATUSES).exists():
+    if member and OnlinePaymentAttempt.objects.blocking().filter(member=member).exists():
         raise CheckoutError('This member has an unresolved QRPh payment. Resolve it before collecting Cash.', 409)
     end_date = fulfill_member(member, pricing.duration_days, pricing.price)
     payment = Payment.objects.create(member=member, stored_member_id=member.member_id if member else 'GYMMSGUEST',

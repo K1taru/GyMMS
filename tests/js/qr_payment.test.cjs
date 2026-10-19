@@ -51,7 +51,7 @@ async function widget({current = checkout(), saved = null, reducedMotion = false
     const states = [], events = [], calls = [], intervals = new Map(), storage = new Map(), timers = new Map();
     let clock = 0, timerId = 0;
     if (saved) storage.set(prefix + 'attempt', saved.id);
-    const server = {current, detail: saved, cancel: null, created: checkout()};
+    const server = {current, detail: saved, cancel: null, created: checkout(), cancelError: null, dropCancelResponse: false};
     const window = Object.assign(element(), {
         dispatchEvent(event) { states.push(event.detail); events.push(event); },
         matchMedia: () => ({matches: reducedMotion}),
@@ -71,9 +71,11 @@ async function widget({current = checkout(), saved = null, reducedMotion = false
             calls.push({url, options});
             let attempt;
             if (url.endsWith('/cancel/')) {
+                if (server.cancelError) throw new Error(server.cancelError);
                 attempt = server.cancel;
-                server.current = attempt.is_unresolved ? attempt : null;
+                server.current = (attempt.blocks_checkout ?? attempt.is_unresolved) ? attempt : null;
                 server.detail = attempt;
+                if (server.dropCancelResponse) throw new Error('Response lost');
             } else if (url.endsWith('/current/')) attempt = server.current;
             else if (url === '/payments/qrph/attempts/') attempt = server.current = server.created;
             else attempt = server.detail;
@@ -134,6 +136,82 @@ test('unconfirmed cancellation stays unresolved until worker confirms cancellati
     await w.advance(180);
     assert.equal(w.elements.overlay.hidden, true);
     assert.equal(w.elements.floating.hidden, true);
+});
+
+test('staff cancellation closes immediately while PayMongo remains unresolved and permits retry', async () => {
+    const w = await widget({current:checkout({test_mode:false, qr_image:'data:image/png;base64,YQ=='})});
+    assert.ok(w.elements['image-area'].children.length);
+    w.server.cancel = {...w.server.current, status:'cancel_requested', is_unresolved:true,
+        blocks_checkout:false, staff_cancelled_at:'2026-10-19T12:00:00Z', can_cancel:false};
+    await w.elements.cancel.emit('click');
+    assert.equal(w.window.GymQRPayment.unresolved, false);
+    assert.equal(w.elements['image-area'].children.length, 0);
+    assert.equal(w.elements.floating.hidden, true);
+    assert.equal(w.storage.has(prefix + 'attempt'), false);
+    assert.match(w.elements.notice.textContent, /Payment process cancelled\. You can process another payment\./);
+    assert.match(w.elements.notice.textContent, /Do not use the old QR/);
+    await w.advance(180);
+    assert.equal(w.elements.overlay.hidden, true);
+    await w.poll();
+    assert.equal(w.elements.overlay.hidden, true);
+    await w.window.GymQRPayment.start(new FormData());
+    assert.equal(w.window.GymQRPayment.unresolved, true);
+    assert.equal(w.states.at(-1).id, w.server.created.id);
+});
+
+test('a cancellation network failure retains recovery until the server confirms it', async () => {
+    const w = await widget();
+    const id = w.server.current.id;
+    w.server.cancelError = 'Connection interrupted';
+    await w.elements.cancel.emit('click');
+    assert.equal(w.window.GymQRPayment.unresolved, true);
+    assert.equal(w.storage.get(prefix + 'attempt'), id);
+    assert.equal(w.elements.overlay.hidden, false);
+    assert.match(w.elements.notice.textContent, /Cancellation was not confirmed by GyMMS/);
+    await w.window.GymQRPayment.start(new FormData());
+    assert.equal(w.calls.filter(call => call.url === '/payments/qrph/attempts/').length, 0);
+});
+
+test('a lost cancellation response is recovered by reading the cancelled attempt', async () => {
+    const w = await widget();
+    w.server.cancel = {...w.server.current, status:'cancel_requested', blocks_checkout:false,
+        staff_cancelled_at:'2026-10-19T12:00:00Z', can_cancel:false};
+    w.server.dropCancelResponse = true;
+    await w.elements.cancel.emit('click');
+    assert.equal(w.window.GymQRPayment.unresolved, true);
+    await w.poll();
+    await w.advance(180);
+    assert.equal(w.window.GymQRPayment.unresolved, false);
+    assert.equal(w.elements.overlay.hidden, true);
+    assert.equal(w.storage.has(prefix + 'attempt'), false);
+});
+
+test('locally cancelled attempts stay closed after reload even with a late receipt under review', async () => {
+    for (const status of ['cancel_requested', 'completed']) {
+        const saved = checkout({status, blocks_checkout:false, staff_cancelled_at:'2026-10-19T12:00:00Z',
+            review_required:true, payment:status === 'completed' ? {id:'late-receipt'} : null});
+        const w = await widget({current:null, saved});
+        await w.advance(5180);
+        assert.equal(w.elements.overlay.hidden, true);
+        assert.equal(w.elements.floating.hidden, true);
+        assert.equal(w.window.GymQRPayment.unresolved, false);
+        assert.equal(w.storage.has(prefix + 'attempt'), false);
+        assert.equal(w.events.filter(event => event.type === 'gymms:payment-completed').length, 0);
+    }
+});
+
+test('cancellation in another tab is verified without restoring its badge or blocking cash', async () => {
+    const w = await widget();
+    w.server.detail = {...w.server.current, status:'cancel_requested', blocks_checkout:false,
+        staff_cancelled_at:'2026-10-19T12:00:00Z'};
+    w.server.current = null;
+    w.storage.delete(prefix + 'attempt');
+    await w.window.emit('storage', {key:prefix + 'attempt', newValue:null});
+    await w.advance(180);
+    assert.equal(w.elements.overlay.hidden, true);
+    assert.equal(w.elements.floating.hidden, true);
+    assert.equal(w.window.GymQRPayment.unresolved, false);
+    assert.equal(w.window.GymQRPayment.showResult({success:true, message:'Cash received.'}), true);
 });
 
 test('provider-confirmed expiry clears a minimized cancellation after polling', async () => {

@@ -39,12 +39,12 @@ def create_attempt(user, data):
         if existing.created_by_id != user.pk or existing.request_fingerprint != fingerprint:
             raise CheckoutError('Request key was already used for a different payment.', 409)
         return existing
-    if OnlinePaymentAttempt.objects.filter(created_by=user, status__in=UNRESOLVED_STATUSES).exists():
+    if OnlinePaymentAttempt.objects.blocking().filter(created_by=user).exists():
         raise CheckoutError('Resolve your current QRPh payment before starting another.', 409)
     member, pricing, name, remarks = checkout_snapshot(data)
     if pricing.price < 1:
         raise CheckoutError('QR Ph requires a minimum payment of PHP 1.00.')
-    if member and OnlinePaymentAttempt.objects.filter(member=member, status__in=UNRESOLVED_STATUSES).exists():
+    if member and OnlinePaymentAttempt.objects.blocking().filter(member=member).exists():
         raise CheckoutError('This member already has an unresolved QRPh payment.', 409)
     return OnlinePaymentAttempt.objects.create(
         request_key=key, request_fingerprint=fingerprint, created_by=user, member=member, membership_plan=pricing,
@@ -56,16 +56,18 @@ def create_attempt(user, data):
 
 def serialize_attempt(attempt):
     result = {'id': str(attempt.pk), 'status': attempt.status, 'is_unresolved': attempt.is_unresolved,
+              'blocks_checkout': attempt.blocks_checkout,
+              'staff_cancelled_at': attempt.staff_cancelled_at.isoformat() if attempt.staff_cancelled_at else None,
               'review_required': attempt.review_required,
               'member_id': attempt.stored_member_id, 'customer_name': attempt.customer_name,
               'plan_label': attempt.plan_label, 'amount': str(attempt.amount), 'currency': attempt.currency,
-              'qr_image': attempt.qr_image, 'expires_at': attempt.expires_at.isoformat() if attempt.expires_at else None,
+              'qr_image': '' if attempt.staff_cancelled_at else attempt.qr_image, 'expires_at': attempt.expires_at.isoformat() if attempt.expires_at else None,
               'server_time': timezone.now().isoformat(), 'message': attempt.message,
               'payment': serialize_payment(attempt.payment) if attempt.payment_id else None,
               'new_end_date': attempt.new_end_date.isoformat() if attempt.new_end_date else None,
               'is_walkin': attempt.is_walkin, 'test_mode': attempt.mode == 'test',
-              'can_cancel': attempt.is_unresolved and not attempt.payment_id and not attempt.provider_payment_id}
-    if attempt.mode == 'test' and attempt.test_url:
+              'can_cancel': attempt.blocks_checkout and not attempt.payment_id and not attempt.provider_payment_id}
+    if attempt.mode == 'test' and attempt.test_url and not attempt.staff_cancelled_at:
         result['test_url'] = attempt.test_url
     return result
 
@@ -73,12 +75,13 @@ def serialize_attempt(attempt):
 @transaction.atomic
 def request_cancel(attempt_id):
     attempt = OnlinePaymentAttempt.objects.select_for_update().get(pk=attempt_id)
-    if attempt.is_unresolved and not attempt.payment_id and not attempt.provider_payment_id:
+    if attempt.blocks_checkout and not attempt.payment_id and not attempt.provider_payment_id:
         attempt.status = 'cancel_requested'
         attempt.cancel_reason = 'staff'
-        attempt.message = 'Checking payment status and requesting provider cancellation.'
-        attempt.next_retry_at = timezone.now()
-        attempt.save(update_fields=['status', 'cancel_reason', 'message', 'next_retry_at', 'updated_at'])
+        attempt.staff_cancelled_at = timezone.now()
+        attempt.message = 'Payment process cancelled. You can process another payment. Do not use the old QR code.'
+        attempt.next_retry_at = attempt.staff_cancelled_at
+        attempt.save(update_fields=['status', 'cancel_reason', 'staff_cancelled_at', 'message', 'next_retry_at', 'updated_at'])
     return attempt
 
 
@@ -278,7 +281,7 @@ def _settle(attempt, resource, expected_payment_id=None):
                 _review(attempt, 'Multiple paid receipts require owner review.')
             return
         member = Member.objects.select_for_update().filter(pk=locked.member_id).first() if locked.member_id else None
-        requires_review = not locked.is_walkin and (member is None or member.is_deleted)
+        requires_review = bool(locked.staff_cancelled_at) or (not locked.is_walkin and (member is None or member.is_deleted))
         end_date = None if requires_review else fulfill_member(member, locked.duration_days, locked.amount)
         paid_at = attrs.get('paid_at')
         payment_date = datetime.fromtimestamp(paid_at, datetime_timezone.utc) if isinstance(paid_at, (int, float)) else timezone.now()
@@ -297,7 +300,10 @@ def _settle(attempt, resource, expected_payment_id=None):
         # Keeping a paid late receipt unresolved could violate a newer staff checkout's slot.
         locked.status = 'completed'
         locked.review_required = requires_review
-        locked.message = 'Payment received; deleted member requires owner review.' if requires_review else 'Payment confirmed successfully.'
+        if locked.staff_cancelled_at:
+            locked.message = 'Payment received after staff cancelled the payment process. Refund or credit review is required; no membership extension or check-in was applied.'
+        else:
+            locked.message = 'Payment received; deleted member requires owner review.' if requires_review else 'Payment confirmed successfully.'
         locked.save()
         attempt.refresh_from_db()
 
@@ -336,6 +342,14 @@ def process_attempt(attempt_id, client=None):
                 raise ProviderError('Missing provider intent identifier.', uncertain=True)
             _save(attempt, payment_intent_id=intent_id, pending_operation='')
             _intent_attrs(resource, attempt)
+        # Do not create or attach another method after observing cancellation,
+        # including cancellation committed during intent creation.
+        latest = OnlinePaymentAttempt.objects.get(pk=attempt.pk)
+        if latest.staff_cancelled_at or latest.status == 'cancel_requested':
+            attempt.status = latest.status
+            attempt.cancel_reason = latest.cancel_reason
+            _reconcile(attempt, client)
+            return
         if not attempt.payment_method_id:
             resource = _mutation(attempt, 'create_method', lambda: client.create_method(attempt))
             if not resource.get('id'):
