@@ -1,6 +1,6 @@
 # Trusted Bash configuration. Install root-owned with mode 0600.
 GYMMS_GITHUB_REPOSITORY=K1taru/GyMMS
-GYMMS_DEPLOY_PATH=/srv/GyMMS
+GYMMS_DEPLOY_PATH=/home/k1taru/srv/GyMMS
 # Must match the EXISTING Compose project name; check `docker compose ls`.
 GYMMS_PROJECT_NAME=gymms
 GYMMS_COMPOSE_FILE=/etc/gymms/compose.yml

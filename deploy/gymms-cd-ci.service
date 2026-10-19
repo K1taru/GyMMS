@@ -1,5 +1,5 @@
 [Unit]
-Description=Pull and deploy a verified GyMMS release
+Description=GyMMS CI/CD deployment of verified releases
 Wants=network-online.target
 After=network-online.target docker.service
 Requires=docker.service
@@ -17,7 +17,7 @@ TimeoutStartSec=45min
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=full
-ProtectHome=yes
+ProtectHome=read-only
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 
 [Install]
