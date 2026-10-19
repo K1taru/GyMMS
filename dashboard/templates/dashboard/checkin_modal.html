@@ -1,7 +1,7 @@
 {% load static %}
 
 <!-- Check-in Modal Styles -->
-<link rel="stylesheet" href="{% static 'dashboard/css/checkin_modal.css' %}?v=7">
+<link rel="stylesheet" href="{% static 'dashboard/css/checkin_modal.css' %}?v=8">
 
 <!-- Check-in Modal -->
 <div class="modal" id="checkInModal">
@@ -65,14 +65,19 @@
 					<label for="guestName">Guest Name</label>
 					<input type="text" id="guestName" placeholder="Enter guest name" value="Guest" required>
 				</div>
-				<div class="form-group">
-					<label for="guestGender">Gender</label>
-					<select id="guestGender" required>
-						<option value="">Select gender</option>
-						<option value="Male">Male</option>
-						<option value="Female">Female</option>
-					</select>
-				</div>
+				<fieldset class="form-group gender-fieldset">
+					<legend>Gender</legend>
+					<div class="gender-options">
+						<label class="gender-option" for="guestGenderMale">
+							<input type="radio" id="guestGenderMale" name="guestGender" value="Male" required>
+							<span>Male</span>
+						</label>
+						<label class="gender-option" for="guestGenderFemale">
+							<input type="radio" id="guestGenderFemale" name="guestGender" value="Female" required>
+							<span>Female</span>
+						</label>
+					</div>
+				</fieldset>
 				<div class="modal-actions">
 					<button type="button" class="btn-secondary" id="cancelWalkIn">Cancel</button>
 					<button type="submit" class="btn-primary" id="submitWalkIn">Proceed to Payment</button>
@@ -83,4 +88,4 @@
 </div>
 
 <!-- Check-in Modal Script -->
-<script defer src="{% static 'dashboard/js/checkin_modal.js' %}?v=11"></script>
+<script defer src="{% static 'dashboard/js/checkin_modal.js' %}?v=12"></script>
