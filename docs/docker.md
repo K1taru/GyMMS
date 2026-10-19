@@ -6,7 +6,7 @@ Use a 64-bit Raspberry Pi OS with Docker Engine and current Docker Compose v2 su
 
 The shared application image uses Python 3.14.8 on Debian Trixie, Django 6.1.2, Psycopg 3, Gunicorn, and WhiteNoise. PostgreSQL uses `18.6-trixie`. Versions are explicit; refresh pins deliberately and rerun checks rather than using `latest` tags. The Dockerfile uses BuildKit dependency caching. `requirements.txt` pins all runtime and transitive dependencies; unused REST framework, Bootstrap crispy adapter, and python-dotenv packages were removed after source inspection.
 
-Startup order: PostgreSQL health check → successful `initialize` (real connection retry and migrations) → web static collection and Gunicorn → HTTP/database readiness → payment worker. A migration failure blocks dependent startup. During routine releases, explicitly run initialization before replacing application containers, as shown in the README; do not rely on an old completed initialization container to migrate a new release.
+Startup order: PostgreSQL health check → successful `initialize` (real connection retry and migrations) → web static collection and Gunicorn → HTTP/database readiness → payment worker. A migration failure blocks dependent startup. During routine releases, explicitly run initialization before replacing application containers, as shown in the [setup guide](setup.md#routine-maintenance); do not rely on an old completed initialization container to migrate a new release.
 
 `GET /health/` returns `200 {"status": "ok"}` or `503 {"status": "unavailable"}` and disables caching. It is the only route exempted from HTTPS redirection. The container probe uses the first configured allowed host; it never calls PayMongo. An unhealthy flag does not automatically restart a running container: restart policy handles process exits. Check worker logs and provider delivery separately.
 
@@ -73,7 +73,7 @@ docker compose exec web python manage.py check_paymongo
 docker compose ps -a
 ```
 
-If old explicitly named containers conflict, stop and remove only those obsolete containers after recording their mounts; never remove their volumes. Configure pricing through the Owner interface, or deliberately use the optional `seed_pricing` command described in the README. Verify login, new member creation, upload persistence, cash payments, static assets, and worker operation. Follow the PayMongo guide before enabling QR checkout. Keep the public tunnel inaccessible during this verification.
+If old explicitly named containers conflict, stop and remove only those obsolete containers after recording their mounts; never remove their volumes. Configure pricing through the Owner interface, or deliberately use the optional `seed_pricing` command described in the [setup guide](setup.md#first-setup). Verify login, new member creation, upload persistence, cash payments, static assets, and worker operation. Follow the PayMongo guide before enabling QR checkout. Keep the public tunnel inaccessible during this verification.
 
 ## Recovery and routine releases
 
@@ -81,7 +81,7 @@ Before accepting new writes, rollback can stop the new web/worker/database and r
 
 After accepting records or payments on the new database, reverting to the old volume would lose those new records. Disable collection and reconcile provider state before planning recovery. Preserve both volumes and payment evidence; do not silently reopen an older database. A database backup cannot undo external provider payments.
 
-For subsequent releases follow the README maintenance sequence: backup, build, stop web/worker, run initialization, recreate web/worker, verify readiness. For environment-only changes use `docker compose up -d --force-recreate --no-deps web payment-worker`; restart alone retains old environment values. Keep secrets out of rendered Compose output and logs; `config --quiet` validates without printing them.
+For subsequent releases follow the [setup guide's maintenance sequence](setup.md#routine-maintenance): backup, build, stop web/worker, run initialization, recreate web/worker, verify readiness. For environment-only changes use `docker compose up -d --force-recreate --no-deps web payment-worker`; restart alone retains old environment values. Keep secrets out of rendered Compose output and logs; `config --quiet` validates without printing them.
 
 ## Troubleshooting and validation
 

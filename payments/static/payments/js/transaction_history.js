@@ -347,6 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const values = [transaction.id, transaction.payment_date, transaction.stored_member_id,
                 transaction.stored_member_name, plan, `₱${Number(transaction.amount).toFixed(2)}`,
                 transaction.payment_method, transaction.reference_number, transaction.processed_by];
+            // Keep full values as text; shared table CSS wraps long references and names within each cell.
             values.forEach((value, index) => {
                 const cell = document.createElement('td');
                 const content = document.createElement('span');

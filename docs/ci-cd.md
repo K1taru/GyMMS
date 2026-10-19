@@ -15,7 +15,7 @@ PR jobs cannot publish or sign images. Successful publication means an approved 
 
 ## Prepare the Pi once
 
-This is for an already working PostgreSQL 18 installation. Complete the [first setup](../README.md#first-setup) and any [PostgreSQL cutover](docker.md#cutover-from-postgresql-16) manually before enabling automatic releases. Keep the existing Compose project name, data volume, `.env`, and uploads. Never use `down -v` for this setup.
+This is for an already working PostgreSQL 18 installation. Complete the [first setup](setup.md#first-setup) and any [PostgreSQL cutover](docker.md#cutover-from-postgresql-16) manually before enabling automatic releases. Keep the existing Compose project name, data volume, `.env`, and uploads. Never use `down -v` for this setup.
 
 Install Docker Engine, Compose v2, Docker Buildx, Bash, `flock` (util-linux), jq, tar, and Cosign v3. Use the official [Cosign installation instructions](https://docs.sigstore.dev/cosign/system_config/installation/), verifying the release binary before installing it. Install tools globally, such as `/usr/local/bin/cosign`; tools installed only inside a user's home will be inaccessible to the systemd service. No build/emulation tools beyond Buildx's registry inspection are used on the Pi.
 
@@ -101,7 +101,7 @@ Each release has a short downtime window while web/worker stop for backup and mi
 
 Backups live under `/var/lib/gymms-deploy/backup-<UTC timestamp>-<unique suffix>/` and contain `database.dump`, `media.tar.gz`, and previous/target image references. The first release's previous image is recorded as `unknown`; record the old local image and deployment settings before the first run if you need an immediate rollback route. Provision disk space, test restores, copy backups off-host, and manage retention. The agent does not prune images, volumes, or backups.
 
-Use the installed Compose file and exact image digest for production maintenance. The Git checkout's default `gymms-app:local` is intended for development/manual builds. Running the README's old build/up commands against a timer-managed production project could select a different image. Read the current reference from `/var/lib/gymms-deploy/current` (second field), set `GYMMS_IMAGE` to it, and use the configured project name/directory and `/etc/gymms/compose.yml` for operational commands. Avoid environment overrides that change Docker/Compose targets.
+Use the installed Compose file and exact image digest for production maintenance. The Git checkout's default `gymms-app:local` is intended for development/manual builds. Running the [setup guide's manual build/up commands](setup.md#routine-maintenance) against a timer-managed production project could select a different image. Read the current reference from `/var/lib/gymms-deploy/current` (second field), set `GYMMS_IMAGE` to it, and use the configured project name/directory and `/etc/gymms/compose.yml` for operational commands. Avoid environment overrides that change Docker/Compose targets.
 
 The host's Compose file, script, database pin, and systemd units are updated manually after reviewing repository changes. Automatic releases update application code and committed migrations inside the image; they do not automatically change host ports, mounts, database version, or privileges.
 
